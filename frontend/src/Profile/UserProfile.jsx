@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { childrenAPI } from '../services/api';
 
 export default function UserProfile() {
-    // FIX: Initialize children as an empty array to prevent "map is not a function" error
     const [children, setChildren] = useState([]);
     const [showAddChildForm, setShowAddChildForm] = useState(false);
     const [selectedChild, setSelectedChild] = useState(null);
@@ -18,69 +17,14 @@ export default function UserProfile() {
         medicalConditions: ''
     });
 
-    // Vaccination schedule based on age
-    const vaccinationSchedule = [
-        { name: 'BCG', ageInMonths: 0, description: 'Bacillus Calmette-Guérin' },
-        { name: 'Hepatitis B (Birth Dose)', ageInMonths: 0, description: 'First dose at birth' },
-        { name: 'OPV 0', ageInMonths: 0, description: 'Oral Polio Vaccine - Birth dose' },
-
-        { name: 'OPV 1', ageInMonths: 1.5, description: 'Oral Polio Vaccine - 1st dose' },
-        { name: 'Pentavalent 1', ageInMonths: 1.5, description: 'DPT, Hepatitis B, Hib - 1st dose' },
-        { name: 'Rotavirus 1', ageInMonths: 1.5, description: 'Rotavirus vaccine - 1st dose' },
-        { name: 'PCV 1', ageInMonths: 1.5, description: 'Pneumococcal Conjugate Vaccine - 1st dose' },
-
-        { name: 'OPV 2', ageInMonths: 2.5, description: 'Oral Polio Vaccine - 2nd dose' },
-        { name: 'Pentavalent 2', ageInMonths: 2.5, description: 'DPT, Hepatitis B, Hib - 2nd dose' },
-        { name: 'Rotavirus 2', ageInMonths: 2.5, description: 'Rotavirus vaccine - 2nd dose' },
-        { name: 'PCV 2', ageInMonths: 2.5, description: 'Pneumococcal Conjugate Vaccine - 2nd dose' },
-
-        { name: 'OPV 3', ageInMonths: 3.5, description: 'Oral Polio Vaccine - 3rd dose' },
-        { name: 'Pentavalent 3', ageInMonths: 3.5, description: 'DPT, Hepatitis B, Hib - 3rd dose' },
-        { name: 'Rotavirus 3', ageInMonths: 3.5, description: 'Rotavirus vaccine - 3rd dose' },
-        { name: 'PCV 3', ageInMonths: 3.5, description: 'Pneumococcal Conjugate Vaccine - 3rd dose' },
-        { name: 'IPV 1', ageInMonths: 3.5, description: 'Inactivated Polio Vaccine - 1st dose' },
-
-        { name: 'Measles/MR 1', ageInMonths: 9, description: 'Measles/Rubella - 1st dose' },
-        { name: 'Vitamin A (1st dose)', ageInMonths: 9, description: 'Vitamin A supplementation' },
-
-        { name: 'PCV Booster', ageInMonths: 12, description: 'Pneumococcal booster' },
-
-        { name: 'DPT Booster 1', ageInMonths: 16, description: 'DPT 1st booster' },
-        { name: 'OPV Booster', ageInMonths: 16, description: 'OPV booster dose' },
-        { name: 'IPV 2', ageInMonths: 16, description: 'Inactivated Polio Vaccine - 2nd dose' },
-        { name: 'Measles/MR 2', ageInMonths: 16, description: 'Measles/Rubella - 2nd dose' },
-
-        { name: 'Vitamin A (2nd dose)', ageInMonths: 18, description: 'Vitamin A supplementation' },
-
-        { name: 'DPT Booster 2', ageInMonths: 60, description: 'DPT 2nd booster (5 years)' },
-
-        { name: 'Typhoid', ageInMonths: 24, description: 'Typhoid vaccine' },
-        { name: 'Hepatitis A', ageInMonths: 24, description: 'Hepatitis A vaccine' },
-
-        { name: 'Chickenpox', ageInMonths: 15, description: 'Varicella vaccine' },
-        { name: 'MMR', ageInMonths: 15, description: 'Measles, Mumps, Rubella' },
-
-        { name: 'HPV (for girls)', ageInMonths: 108, description: 'Human Papillomavirus (9 years)' },
-        { name: 'Tdap', ageInMonths: 120, description: 'Tetanus, Diphtheria, Pertussis (10 years)' }
-    ];
-
-    // Fetch children data on component mount
     useEffect(() => {
         fetchChildren();
     }, []);
 
-    // FIX: Ensure children is always an array and handle errors properly
     const fetchChildren = async () => {
         try {
-            // TODO: Replace with your actual API endpoint
-            const response = await axios.get('http://localhost:5000/api/children/get');
-            
-            // Ensure response.data is an array
-            const childrenData = Array.isArray(response.data) 
-                ? response.data 
-                : response.data?.children 
-                ? response.data.children 
-                : [];
+            const response = await childrenAPI.getAll();
+            const childrenData = response.data.data || [];
             
             setChildren(childrenData);
             
@@ -89,12 +33,10 @@ export default function UserProfile() {
             }
         } catch (error) {
             console.error('Error fetching children:', error);
-            // Set empty array on error to prevent map errors
             setChildren([]);
         }
     };
 
-    // Calculate age in months from date of birth
     const calculateAgeInMonths = (dob) => {
         const birthDate = new Date(dob);
         const today = new Date();
@@ -103,7 +45,6 @@ export default function UserProfile() {
         return months;
     };
 
-    // Calculate estimated vaccination date
     const calculateVaccinationDate = (dob, ageInMonths) => {
         const birthDate = new Date(dob);
         const vaccinationDate = new Date(birthDate);
@@ -115,21 +56,18 @@ export default function UserProfile() {
         });
     };
 
-    // Check if vaccination is overdue
     const isOverdue = (dob, ageInMonths, isCompleted) => {
         if (isCompleted) return false;
         const currentAgeInMonths = calculateAgeInMonths(dob);
         return currentAgeInMonths > ageInMonths;
     };
 
-    // Check if vaccination is upcoming (within next month)
     const isUpcoming = (dob, ageInMonths, isCompleted) => {
         if (isCompleted) return false;
         const currentAgeInMonths = calculateAgeInMonths(dob);
         return ageInMonths > currentAgeInMonths && ageInMonths <= currentAgeInMonths + 1;
     };
 
-    // Handle form input changes
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setChildFormData(prev => ({
@@ -141,7 +79,6 @@ export default function UserProfile() {
         }
     };
 
-    // Validate child form
     const validateChildForm = () => {
         const newErrors = {};
         if (!childFormData.name.trim()) {
@@ -156,7 +93,6 @@ export default function UserProfile() {
         return newErrors;
     };
 
-    // Handle add/edit child
     const handleSubmitChild = async (e) => {
         e.preventDefault();
         const validationErrors = validateChildForm();
@@ -168,16 +104,7 @@ export default function UserProfile() {
 
         setLoading(true);
         try {
-            // TODO: Replace with your actual API endpoint
-            const response = await axios.post('/api/user/children', {
-                ...childFormData,
-                vaccinations: vaccinationSchedule.map(v => ({
-                    name: v.name,
-                    ageInMonths: v.ageInMonths,
-                    isCompleted: false,
-                    completedDate: null
-                }))
-            });
+            await childrenAPI.create(childFormData);
 
             await fetchChildren();
             setShowAddChildForm(false);
@@ -200,48 +127,38 @@ export default function UserProfile() {
         }
     };
 
-    // Handle vaccination checkbox toggle
-    const handleVaccinationToggle = async (vaccinationName) => {
+    const handleVaccinationToggle = async (vaccination) => {
         if (!selectedChild) return;
 
-        const updatedVaccinations = selectedChild.vaccinations.map(v => {
-            if (v.name === vaccinationName) {
-                return {
-                    ...v,
-                    isCompleted: !v.isCompleted,
-                    completedDate: !v.isCompleted ? new Date().toISOString() : null
-                };
-            }
-            return v;
-        });
+        const newIsCompleted = !vaccination.isCompleted;
 
         try {
-            // TODO: Replace with your actual API endpoint
-            await axios.put(`/api/user/children/${selectedChild.id}/vaccinations`, {
-                vaccinations: updatedVaccinations
-            });
+            await childrenAPI.updateVaccination(
+                selectedChild._id,
+                vaccination._id,
+                {
+                    isCompleted: newIsCompleted,
+                    completedDate: newIsCompleted ? new Date().toISOString() : null
+                }
+            );
 
-            // Update local state
-            setSelectedChild({
-                ...selectedChild,
-                vaccinations: updatedVaccinations
-            });
-
-            setChildren(children.map(child =>
-                child.id === selectedChild.id
-                    ? { ...child, vaccinations: updatedVaccinations }
-                    : child
-            ));
+            await fetchChildren();
+            
+            // Update selected child
+            const updatedChild = children.find(c => c._id === selectedChild._id);
+            if (updatedChild) {
+                setSelectedChild(updatedChild);
+            }
         } catch (error) {
             console.error('Error updating vaccination:', error);
         }
     };
 
-    // Get vaccination completion percentage
     const getVaccinationProgress = (child) => {
-        if (!child.vaccinations || !Array.isArray(child.vaccinations)) return 0;
-        const completed = child.vaccinations.filter(v => v.isCompleted).length;
-        return Math.round((completed / child.vaccinations.length) * 100);
+        if (!child.vaccinationSchedule?.vaccinations) return 0;
+        const vaccinations = child.vaccinationSchedule.vaccinations;
+        const completed = vaccinations.filter(v => v.isCompleted).length;
+        return Math.round((completed / vaccinations.length) * 100);
     };
 
     return (
@@ -271,8 +188,7 @@ export default function UserProfile() {
                                 </button>
                             </div>
 
-                            {/* FIX: Added safety check for children.length */}
-                            {!Array.isArray(children) || children.length === 0 ? (
+                            {children.length === 0 ? (
                                 <div className="text-center py-8">
                                     <svg className="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -289,15 +205,15 @@ export default function UserProfile() {
                                 <div className="space-y-3">
                                     {children.map((child) => (
                                         <div
-                                            key={child.id}
+                                            key={child._id}
                                             onClick={() => setSelectedChild(child)}
-                                            className={`p-4 rounded-xl cursor-pointer transition-all duration-300 ${selectedChild?.id === child.id
+                                            className={`p-4 rounded-xl cursor-pointer transition-all duration-300 ${selectedChild?._id === child._id
                                                     ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
                                                     : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${selectedChild?.id === child.id
+                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${selectedChild?._id === child._id
                                                         ? 'bg-white/20'
                                                         : 'bg-blue-100 text-blue-600'
                                                     }`}>
@@ -305,19 +221,19 @@ export default function UserProfile() {
                                                 </div>
                                                 <div className="flex-1">
                                                     <h3 className="font-semibold">{child.name}</h3>
-                                                    <p className={`text-sm ${selectedChild?.id === child.id ? 'text-white/80' : 'text-gray-500'
+                                                    <p className={`text-sm ${selectedChild?._id === child._id ? 'text-white/80' : 'text-gray-500'
                                                         }`}>
                                                         {calculateAgeInMonths(child.dateOfBirth)} months old
                                                     </p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className={`text-xs font-semibold ${selectedChild?.id === child.id ? 'text-white' : 'text-blue-600'
+                                                    <div className={`text-xs font-semibold ${selectedChild?._id === child._id ? 'text-white' : 'text-blue-600'
                                                         }`}>
                                                         {getVaccinationProgress(child)}%
                                                     </div>
                                                     <div className="w-16 h-1.5 bg-white/30 rounded-full mt-1">
                                                         <div
-                                                            className={`h-full rounded-full ${selectedChild?.id === child.id ? 'bg-white' : 'bg-blue-600'
+                                                            className={`h-full rounded-full ${selectedChild?._id === child._id ? 'bg-white' : 'bg-blue-600'
                                                                 }`}
                                                             style={{ width: `${getVaccinationProgress(child)}%` }}
                                                         ></div>
@@ -556,9 +472,8 @@ export default function UserProfile() {
                                     </div>
 
                                     <div className="space-y-3">
-                                        {vaccinationSchedule.map((vaccine, index) => {
-                                            const vaccination = selectedChild.vaccinations?.find(v => v.name === vaccine.name);
-                                            const isCompleted = vaccination?.isCompleted || false;
+                                        {selectedChild.vaccinationSchedule?.vaccinations?.map((vaccine, index) => {
+                                            const isCompleted = vaccine.isCompleted;
                                             const estimatedDate = calculateVaccinationDate(selectedChild.dateOfBirth, vaccine.ageInMonths);
                                             const overdue = isOverdue(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
                                             const upcoming = isUpcoming(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
@@ -580,7 +495,7 @@ export default function UserProfile() {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isCompleted}
-                                                                onChange={() => handleVaccinationToggle(vaccine.name)}
+                                                                onChange={() => handleVaccinationToggle(vaccine)}
                                                                 className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                                                             />
                                                         </div>
@@ -606,7 +521,7 @@ export default function UserProfile() {
                                                                                         : 'bg-gray-200 text-gray-800'
                                                                             }`}>
                                                                             {isCompleted
-                                                                                ? `✓ Completed ${vaccination.completedDate ? new Date(vaccination.completedDate).toLocaleDateString() : ''}`
+                                                                                ? `✓ Completed ${vaccine.completedDate ? new Date(vaccine.completedDate).toLocaleDateString() : ''}`
                                                                                 : overdue
                                                                                     ? '⚠️ Overdue'
                                                                                     : upcoming

@@ -1,8 +1,30 @@
-import express from 'express'
-const router = express.Router();
-import { getChildren, addChildren } from '../Controller/Children.controller.js';
+import express from 'express';
+import {
+    getChildren,
+    getChild,
+    addChild,
+    updateChild,
+    deleteChild,
+    updateVaccination,
+    bulkUpdateVaccinations
+} from '../Controller/Children.controller.js';
+import { protect } from '../middleware/auth.js';
 
-router.get('/get',getChildren)
-router.post('/add',addChildren)
+const router = express.Router();
+
+// All routes require authentication
+router.use(protect);
+
+router.route('/')
+    .get(getChildren)
+    .post(addChild);
+
+router.route('/:id')
+    .get(getChild)
+    .put(updateChild)
+    .delete(deleteChild);
+
+router.put('/:childId/vaccinations/:vaccinationId', updateVaccination);
+router.put('/:childId/vaccinations', bulkUpdateVaccinations);
 
 export default router;

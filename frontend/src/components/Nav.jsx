@@ -1,110 +1,218 @@
-import { NavLink } from "react-router-dom";
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-export default function Nav() {
+const Nav = () => {
+    const { user, isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const logIn = false
+    const handleLogout = () => {
+        logout();
+        setIsMobileMenuOpen(false);
+        navigate('/');
+    };
 
+    const toggleMobileMenu = () => {
+        setIsMobileMenuOpen(!isMobileMenuOpen);
+    };
 
+    const isActive = (path) => {
+        return location.pathname === path;
+    };
+
+    const navLinkClass = (path) => {
+        return `px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive(path)
+                ? 'bg-gray-900 text-white'
+                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+            }`;
+    };
+
+    const mobileNavLinkClass = (path) => {
+        return `block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${isActive(path)
+                ? 'bg-gray-900 text-white'
+                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+            }`;
+    };
 
     return (
-        <>
-            <nav className={`min-[815px]:hidden sidebar sticky top-0 z-30 shadow-md w-full  bg-white h-[10vh] `}>
-                <div className={` px-3  flex items-center justify-between  `}>
-                    <NavLink to=''>
-                        <img src="/logo.png" alt="logo" className=" sm:w-[18vw]  sm:h-[10vh] w-[25vw] h-[10vh] " />
-                    </NavLink>
-                    <div>
-                        <svg className={`ml-2 menu  `} xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="34" height="34" viewBox="0 0 70 40">
-                            <path d="M 5 8 A 2.0002 2.0002 0 1 0 5 12 L 45 12 A 2.0002 2.0002 0 1 0 45 8 L 5 8 z M 5 23 A 2.0002 2.0002 0 1 0 5 27 L 45 27 A 2.0002 2.0002 0 1 0 45 23 L 5 23 z M 5 38 A 2.0002 2.0002 0 1 0 5 42 L 45 42 A 2.0002 2.0002 0 1 0 45 38 L 5 38 z"></path>
-                        </svg>
-                        <svg className={`ml-2 close  `} xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="34" height="34" viewBox="0 0 24 24">
-                            <path d="M 4.9902344 3.9902344 A 1.0001 1.0001 0 0 0 4.2929688 5.7070312 L 10.585938 12 L 4.2929688 18.292969 A 1.0001 1.0001 0 1 0 5.7070312 19.707031 L 12 13.414062 L 18.292969 19.707031 A 1.0001 1.0001 0 1 0 19.707031 18.292969 L 13.414062 12 L 19.707031 5.7070312 A 1.0001 1.0001 0 0 0 18.980469 3.9902344 A 1.0001 1.0001 0 0 0 18.292969 4.2929688 L 12 10.585938 L 5.7070312 4.2929688 A 1.0001 1.0001 0 0 0 4.9902344 3.9902344 z"></path>
-                        </svg>
+        <nav className="bg-gray-800 shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-16">
+                    {/* Logo/Brand */}
+                    <div className="flex items-center">
+                        <Link to="/" className="flex-shrink-0">
+                            <h1 className="text-white text-xl font-bold">AI Chat App</h1>
+                        </Link>
                     </div>
-                    <div className={`absolute flex flex-col shadow-md shadow-gray-200  left-0 top-full text-create  overflow-scroll  w-full max-[425px]:w-full   h-fit  z-10  gap-10 bg-white `} >
-                        <div className=" overflow-scroll overflow-x-hidden flex flex-col  grow gap-y-2 ">
-                            <NavLink to="" className={({ isActive }) => `relative hover:opacity-85 mx-4  ${isActive ? `` : " opacity-70"}`}>
-                                Home
-                            </NavLink>
-                            <div to="" className={`dropdown relative hover:opacity-85 w-full  flex flex-col `}>
-                                <div className=" flex items-center justify-between">
-                                    <p className="mx-4 group-even:font-medium ">Courses</p>
-                                    <img src="/darrow.png" className={`w-5 h-5 mx-2  duration-500`} alt="" />
-                                </div>
-                            </div>
-                            <NavLink
-                                to="/mock"
-                                className={({ isActive }) =>
-                                    `relative hover:opacity-85 mx-4 ${isActive ? `` : " opacity-70"}`
-                                }
-                            >
-                                Mock Test
-                            </NavLink>
-                            <NavLink
-                                to="/notice"
-                                className={({ isActive }) =>
-                                    `relative hover:opacity-85 mx-4  ${isActive ? `` : " opacity-70"}`
-                                }
-                            >
-                                Notice
-                            </NavLink>
-                            <NavLink
-                                to="/about"
-                                className={({ isActive }) =>
-                                    `relative hover:opacity-85  mx-4 ${isActive ? `` : " opacity-70"}`
-                                }
-                            >
-                                About Us
-                            </NavLink>
-                        </div>
-                        <div className="  flex flex-col shrink-0   h-[20vh] ">
-                            <h1 className="w-full h-[1.5px] bg-black opacity-10"></h1>
-                            <NavLink to={'/login'} className='my-4 text-create font-medium opacity-50 mx-8' >Sign in</NavLink>
-                            <NavLink to='/contact' className='mx-8 text-create font-medium opacity-50  ' >Contact</NavLink>
-                        </div>
-                    </div>
-                </div>
-            </nav >
-            <nav className={` hidden top-0 z-30  bg-white shadow-md w-full min-[815px]:sticky min-[815px]:flex justify-around items-center px-10 py-2 gap-20 `}>
-                <NavLink to=''>
-                    <p className=" text-3xl font-semibold">Medico</p>
-                </NavLink>
-                <div className="flex flex-wrap items-center justify-center text-center gap-10">
-                    <NavLink
-                        to=""
-                        className={({ isActive }) =>
-                            `relative hover:opacity-85  ${isActive ? `before:content-[''] hover:opacity-100 before:absolute  before:left-0 before:right-0 before:bottom-[-5px] before:h-[2px] before:bg-secondary before:scale-x-125` : " opacity-70"}`
-                        }
-                    >
-                        Home
-                    </NavLink>
-                    <NavLink
-                        to="/chat"
-                        className={({ isActive }) =>
-                            `relative hover:opacity-85  ${isActive ? `before:content-[''] hover:opacity-100 before:absolute  before:left-0 before:right-0 before:bottom-[-5px] before:h-[2px] before:bg-secondary before:scale-x-125` : " opacity-70"}`
-                        }
-                    >
-                        Ai Chat
-                    </NavLink>
-                    <NavLink
-                        to="/chat"
-                        className={({ isActive }) =>
-                            `relative hover:opacity-85  ${isActive ? `before:content-[''] hover:opacity-100 before:absolute  before:left-0 before:right-0 before:bottom-[-5px] before:h-0.5 before:bg-secondary before:scale-x-125` : " opacity-70"}`
-                        }
-                    >
-                        Appointment
-                    </NavLink>
 
-                </div>
-                <div className="flex items-center gap-4">
-                    {logIn ?
-                        <div className="relative drop cursor-pointer" >
-                            profile
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:block">
+                        <div className="ml-10 flex items-center space-x-4">
+                            <Link to="/" className={navLinkClass('/')}>
+                                Home
+                            </Link>
+
+                            <Link to="/chat" className={navLinkClass('/chat')}>
+                                AI Chat
+                            </Link>
+
+                            {isAuthenticated && (
+                                <Link to="/profile" className={navLinkClass('/profile')}>
+                                    Profile
+                                </Link>
+                            )}
+
+                            {/* Auth Buttons */}
+                            {isAuthenticated ? (
+                                <div className="flex items-center space-x-3">
+                                    {user && (
+                                        <span className="text-gray-300 text-sm">
+                                            Hello, {user.name || user.email}
+                                        </span>
+                                    )}
+                                    <button
+                                        onClick={handleLogout}
+                                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center space-x-2">
+                                    <Link
+                                        to="/login"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                                    >
+                                        Login
+                                    </Link>
+                                    <Link
+                                        to="/register"
+                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                                    >
+                                        Register
+                                    </Link>
+                                </div>
+                            )}
                         </div>
-                        : < NavLink to={'/login'} className="outline-1 px-4 py-2 rounded-4xl min-w-fit cursor-pointer " > Sign in </NavLink>
-                    }
+                    </div>
+
+                    {/* Mobile menu button */}
+                    <div className="md:hidden">
+                        <button
+                            onClick={toggleMobileMenu}
+                            className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                            aria-expanded="false"
+                        >
+                            <span className="sr-only">Open main menu</span>
+                            {/* Hamburger icon */}
+                            {!isMobileMenuOpen ? (
+                                <svg
+                                    className="block h-6 w-6"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 6h16M4 12h16M4 18h16"
+                                    />
+                                </svg>
+                            ) : (
+                                <svg
+                                    className="block h-6 w-6"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            )}
+                        </button>
+                    </div>
                 </div>
-            </nav>
-        </>
+            </div>
+
+            {/* Mobile menu */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden">
+                    <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                        <Link
+                            to="/"
+                            className={mobileNavLinkClass('/')}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            Home
+                        </Link>
+
+                        <Link
+                            to="/chat"
+                            className={mobileNavLinkClass('/chat')}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            AI Chat
+                        </Link>
+
+                        {isAuthenticated && (
+                            <Link
+                                to="/profile"
+                                className={mobileNavLinkClass('/profile')}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                Profile
+                            </Link>
+                        )}
+                    </div>
+
+                    {/* Mobile Auth Section */}
+                    <div className="pt-4 pb-3 border-t border-gray-700">
+                        {isAuthenticated ? (
+                            <div className="px-2 space-y-1">
+                                {user && (
+                                    <div className="px-3 py-2 text-gray-300 text-sm">
+                                        Hello, {user.name || user.email}
+                                    </div>
+                                )}
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="px-2 space-y-1">
+                                <Link
+                                    to="/login"
+                                    className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Login
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    className="block w-full text-center bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Register
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </nav>
     );
-}
+};
+
+export default Nav;

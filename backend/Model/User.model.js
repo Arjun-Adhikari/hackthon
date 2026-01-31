@@ -1,41 +1,53 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please provide your name'],
+        required: [true, 'Please provide a name'],
         trim: true
     },
     email: {
-        type: String,  
+        type: String,
         required: [true, 'Please provide an email'],
         unique: true,
         lowercase: true,
         trim: true,
-        match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address']
+        match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
     },
     password: {
         type: String,
         required: [true, 'Please provide a password'],
-        minlength: 8,
-        select: false 
+        minlength: 6,
+        select: false
     },
-    isDoctor: {
-        type: Boolean,
-        default: false
+    phone: {
+        type: String,
+        trim: true
     },
-    isVerified: {
-        type: Boolean,
-        default: false
+    address: {
+        type: String,
+        trim: true
     },
-    verificationToken: String,
-    verificationTokenExpires: Date,
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
 
-const User = mongoose.model('User', userSchema);
+// Hash password before saving
+userSchema.pre('save', async function () {
+    if (!this.isModified('password')) {
+        return;
+    }
 
-module.exports = User;
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Method to compare passwords
+userSchema.methods.comparePassword = async function (candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
+
+export default mongoose.model('User', userSchema);

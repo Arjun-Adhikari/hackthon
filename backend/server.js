@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { GoogleGenAI } from "@google/genai";
 import ConnectDB from "./DB/ConnectDB.js";
+import ChildrenRoute from './route/Children.route.js'
 
 dotenv.config();
 
@@ -43,9 +44,10 @@ app.get("/", (req, res) => {
 });
 
 
+app.use('/api/children',ChildrenRoute)
 
 const startServer = async () => {
-    try {
+    try {   
         await ConnectDB();
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {

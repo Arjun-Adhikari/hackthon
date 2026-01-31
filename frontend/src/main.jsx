@@ -7,6 +7,7 @@ import App from './App.jsx'
 import Chat from './Chat/chat'
 import Login from './Login/Login.jsx'
 import Verify from './components/Verify.jsx'
+import Profile from './Profile/Profile.jsx'
 
 
 const router = createBrowserRouter(createRoutesFromElements(
@@ -14,7 +15,7 @@ const router = createBrowserRouter(createRoutesFromElements(
     <Route path='' element={<Home />} />
     <Route path='/chat' element={<Chat />} />
     <Route path='/login' element={<Login />} />
-    <Route path='/verify' element={<Verify />} />
+    <Route path='/profile' element={<Profile />} />
   </Route>
 ))
 

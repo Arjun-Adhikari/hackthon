@@ -357,22 +357,6 @@ export default function Login() {
                                     <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
                                 )}
                             </div>
-
-                            {/* Doctor Checkbox for Signup */}
-                            <div className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="signup-doctor"
-                                    name="isDoctor"
-                                    checked={signupData.isDoctor}
-                                    onChange={handleSignupChange}
-                                    className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label htmlFor="signup-doctor" className="ml-2 text-sm font-medium text-gray-700">
-                                    I am a doctor
-                                </label>
-                            </div>
-
                             <button
                                 type="submit"
                                 disabled={loading}

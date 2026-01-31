@@ -121,6 +121,7 @@ const Verify = () => {
             submitData.append('idProof', documents.idProof);
 
             // Make API call
+            console.log(Object.fromEntries(submitData));            
             const response = await axios.post('/api/doctor/verify', submitData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'

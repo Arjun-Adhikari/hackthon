@@ -1,0 +1,649 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+export default function UserProfile() {
+    // FIX: Initialize children as an empty array to prevent "map is not a function" error
+    const [children, setChildren] = useState([]);
+    const [showAddChildForm, setShowAddChildForm] = useState(false);
+    const [selectedChild, setSelectedChild] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});
+
+    const [childFormData, setChildFormData] = useState({
+        name: '',
+        dateOfBirth: '',
+        gender: '',
+        bloodGroup: '',
+        allergies: '',
+        medicalConditions: ''
+    });
+
+    // Vaccination schedule based on age
+    const vaccinationSchedule = [
+        { name: 'BCG', ageInMonths: 0, description: 'Bacillus Calmette-Guérin' },
+        { name: 'Hepatitis B (Birth Dose)', ageInMonths: 0, description: 'First dose at birth' },
+        { name: 'OPV 0', ageInMonths: 0, description: 'Oral Polio Vaccine - Birth dose' },
+
+        { name: 'OPV 1', ageInMonths: 1.5, description: 'Oral Polio Vaccine - 1st dose' },
+        { name: 'Pentavalent 1', ageInMonths: 1.5, description: 'DPT, Hepatitis B, Hib - 1st dose' },
+        { name: 'Rotavirus 1', ageInMonths: 1.5, description: 'Rotavirus vaccine - 1st dose' },
+        { name: 'PCV 1', ageInMonths: 1.5, description: 'Pneumococcal Conjugate Vaccine - 1st dose' },
+
+        { name: 'OPV 2', ageInMonths: 2.5, description: 'Oral Polio Vaccine - 2nd dose' },
+        { name: 'Pentavalent 2', ageInMonths: 2.5, description: 'DPT, Hepatitis B, Hib - 2nd dose' },
+        { name: 'Rotavirus 2', ageInMonths: 2.5, description: 'Rotavirus vaccine - 2nd dose' },
+        { name: 'PCV 2', ageInMonths: 2.5, description: 'Pneumococcal Conjugate Vaccine - 2nd dose' },
+
+        { name: 'OPV 3', ageInMonths: 3.5, description: 'Oral Polio Vaccine - 3rd dose' },
+        { name: 'Pentavalent 3', ageInMonths: 3.5, description: 'DPT, Hepatitis B, Hib - 3rd dose' },
+        { name: 'Rotavirus 3', ageInMonths: 3.5, description: 'Rotavirus vaccine - 3rd dose' },
+        { name: 'PCV 3', ageInMonths: 3.5, description: 'Pneumococcal Conjugate Vaccine - 3rd dose' },
+        { name: 'IPV 1', ageInMonths: 3.5, description: 'Inactivated Polio Vaccine - 1st dose' },
+
+        { name: 'Measles/MR 1', ageInMonths: 9, description: 'Measles/Rubella - 1st dose' },
+        { name: 'Vitamin A (1st dose)', ageInMonths: 9, description: 'Vitamin A supplementation' },
+
+        { name: 'PCV Booster', ageInMonths: 12, description: 'Pneumococcal booster' },
+
+        { name: 'DPT Booster 1', ageInMonths: 16, description: 'DPT 1st booster' },
+        { name: 'OPV Booster', ageInMonths: 16, description: 'OPV booster dose' },
+        { name: 'IPV 2', ageInMonths: 16, description: 'Inactivated Polio Vaccine - 2nd dose' },
+        { name: 'Measles/MR 2', ageInMonths: 16, description: 'Measles/Rubella - 2nd dose' },
+
+        { name: 'Vitamin A (2nd dose)', ageInMonths: 18, description: 'Vitamin A supplementation' },
+
+        { name: 'DPT Booster 2', ageInMonths: 60, description: 'DPT 2nd booster (5 years)' },
+
+        { name: 'Typhoid', ageInMonths: 24, description: 'Typhoid vaccine' },
+        { name: 'Hepatitis A', ageInMonths: 24, description: 'Hepatitis A vaccine' },
+
+        { name: 'Chickenpox', ageInMonths: 15, description: 'Varicella vaccine' },
+        { name: 'MMR', ageInMonths: 15, description: 'Measles, Mumps, Rubella' },
+
+        { name: 'HPV (for girls)', ageInMonths: 108, description: 'Human Papillomavirus (9 years)' },
+        { name: 'Tdap', ageInMonths: 120, description: 'Tetanus, Diphtheria, Pertussis (10 years)' }
+    ];
+
+    // Fetch children data on component mount
+    useEffect(() => {
+        fetchChildren();
+    }, []);
+
+    // FIX: Ensure children is always an array and handle errors properly
+    const fetchChildren = async () => {
+        try {
+            // TODO: Replace with your actual API endpoint
+            const response = await axios.get('http://localhost:5000/api/children/get');
+            
+            // Ensure response.data is an array
+            const childrenData = Array.isArray(response.data) 
+                ? response.data 
+                : response.data?.children 
+                ? response.data.children 
+                : [];
+            
+            setChildren(childrenData);
+            
+            if (childrenData.length > 0 && !selectedChild) {
+                setSelectedChild(childrenData[0]);
+            }
+        } catch (error) {
+            console.error('Error fetching children:', error);
+            // Set empty array on error to prevent map errors
+            setChildren([]);
+        }
+    };
+
+    // Calculate age in months from date of birth
+    const calculateAgeInMonths = (dob) => {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        const months = (today.getFullYear() - birthDate.getFullYear()) * 12 +
+            (today.getMonth() - birthDate.getMonth());
+        return months;
+    };
+
+    // Calculate estimated vaccination date
+    const calculateVaccinationDate = (dob, ageInMonths) => {
+        const birthDate = new Date(dob);
+        const vaccinationDate = new Date(birthDate);
+        vaccinationDate.setMonth(vaccinationDate.getMonth() + ageInMonths);
+        return vaccinationDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    // Check if vaccination is overdue
+    const isOverdue = (dob, ageInMonths, isCompleted) => {
+        if (isCompleted) return false;
+        const currentAgeInMonths = calculateAgeInMonths(dob);
+        return currentAgeInMonths > ageInMonths;
+    };
+
+    // Check if vaccination is upcoming (within next month)
+    const isUpcoming = (dob, ageInMonths, isCompleted) => {
+        if (isCompleted) return false;
+        const currentAgeInMonths = calculateAgeInMonths(dob);
+        return ageInMonths > currentAgeInMonths && ageInMonths <= currentAgeInMonths + 1;
+    };
+
+    // Handle form input changes
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setChildFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+    };
+
+    // Validate child form
+    const validateChildForm = () => {
+        const newErrors = {};
+        if (!childFormData.name.trim()) {
+            newErrors.name = 'Name is required';
+        }
+        if (!childFormData.dateOfBirth) {
+            newErrors.dateOfBirth = 'Date of birth is required';
+        }
+        if (!childFormData.gender) {
+            newErrors.gender = 'Gender is required';
+        }
+        return newErrors;
+    };
+
+    // Handle add/edit child
+    const handleSubmitChild = async (e) => {
+        e.preventDefault();
+        const validationErrors = validateChildForm();
+
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // TODO: Replace with your actual API endpoint
+            const response = await axios.post('/api/user/children', {
+                ...childFormData,
+                vaccinations: vaccinationSchedule.map(v => ({
+                    name: v.name,
+                    ageInMonths: v.ageInMonths,
+                    isCompleted: false,
+                    completedDate: null
+                }))
+            });
+
+            await fetchChildren();
+            setShowAddChildForm(false);
+            setChildFormData({
+                name: '',
+                dateOfBirth: '',
+                gender: '',
+                bloodGroup: '',
+                allergies: '',
+                medicalConditions: ''
+            });
+            setErrors({});
+        } catch (error) {
+            console.error('Error adding child:', error);
+            setErrors({
+                general: error.response?.data?.message || 'Failed to add child. Please try again.'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle vaccination checkbox toggle
+    const handleVaccinationToggle = async (vaccinationName) => {
+        if (!selectedChild) return;
+
+        const updatedVaccinations = selectedChild.vaccinations.map(v => {
+            if (v.name === vaccinationName) {
+                return {
+                    ...v,
+                    isCompleted: !v.isCompleted,
+                    completedDate: !v.isCompleted ? new Date().toISOString() : null
+                };
+            }
+            return v;
+        });
+
+        try {
+            // TODO: Replace with your actual API endpoint
+            await axios.put(`/api/user/children/${selectedChild.id}/vaccinations`, {
+                vaccinations: updatedVaccinations
+            });
+
+            // Update local state
+            setSelectedChild({
+                ...selectedChild,
+                vaccinations: updatedVaccinations
+            });
+
+            setChildren(children.map(child =>
+                child.id === selectedChild.id
+                    ? { ...child, vaccinations: updatedVaccinations }
+                    : child
+            ));
+        } catch (error) {
+            console.error('Error updating vaccination:', error);
+        }
+    };
+
+    // Get vaccination completion percentage
+    const getVaccinationProgress = (child) => {
+        if (!child.vaccinations || !Array.isArray(child.vaccinations)) return 0;
+        const completed = child.vaccinations.filter(v => v.isCompleted).length;
+        return Math.round((completed / child.vaccinations.length) * 100);
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                        Child Health Profile
+                    </h1>
+                    <p className="text-gray-600">Manage your children's health records and vaccination schedules</p>
+                </div>
+
+                <div className="grid lg:grid-cols-3 gap-6">
+                    {/* Children List Sidebar */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 shadow-xl">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-gray-800">Children</h2>
+                                <button
+                                    onClick={() => setShowAddChildForm(true)}
+                                    className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all duration-300"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* FIX: Added safety check for children.length */}
+                            {!Array.isArray(children) || children.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <svg className="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                    <p className="text-gray-500 text-sm">No children added yet</p>
+                                    <button
+                                        onClick={() => setShowAddChildForm(true)}
+                                        className="mt-3 text-blue-600 text-sm font-semibold hover:text-blue-700"
+                                    >
+                                        Add your first child
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {children.map((child) => (
+                                        <div
+                                            key={child.id}
+                                            onClick={() => setSelectedChild(child)}
+                                            className={`p-4 rounded-xl cursor-pointer transition-all duration-300 ${selectedChild?.id === child.id
+                                                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                                                    : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${selectedChild?.id === child.id
+                                                        ? 'bg-white/20'
+                                                        : 'bg-blue-100 text-blue-600'
+                                                    }`}>
+                                                    {child.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="font-semibold">{child.name}</h3>
+                                                    <p className={`text-sm ${selectedChild?.id === child.id ? 'text-white/80' : 'text-gray-500'
+                                                        }`}>
+                                                        {calculateAgeInMonths(child.dateOfBirth)} months old
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className={`text-xs font-semibold ${selectedChild?.id === child.id ? 'text-white' : 'text-blue-600'
+                                                        }`}>
+                                                        {getVaccinationProgress(child)}%
+                                                    </div>
+                                                    <div className="w-16 h-1.5 bg-white/30 rounded-full mt-1">
+                                                        <div
+                                                            className={`h-full rounded-full ${selectedChild?.id === child.id ? 'bg-white' : 'bg-blue-600'
+                                                                }`}
+                                                            style={{ width: `${getVaccinationProgress(child)}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="lg:col-span-2">
+                        {showAddChildForm ? (
+                            /* Add Child Form */
+                            <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-8 shadow-xl">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-800">Add New Child</h2>
+                                    <button
+                                        onClick={() => {
+                                            setShowAddChildForm(false);
+                                            setErrors({});
+                                        }}
+                                        className="text-gray-500 hover:text-gray-700"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                {errors.general && (
+                                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                                        {errors.general}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleSubmitChild} className="space-y-5">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Full Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                placeholder="Enter child's name"
+                                                value={childFormData.name}
+                                                onChange={handleInputChange}
+                                                className={`w-full px-4 py-3 bg-white border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-300 ${errors.name
+                                                        ? 'border-red-300 focus:ring-red-200'
+                                                        : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
+                                                    }`}
+                                            />
+                                            {errors.name && (
+                                                <p className="mt-2 text-sm text-red-600">{errors.name}</p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Date of Birth *
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="dateOfBirth"
+                                                value={childFormData.dateOfBirth}
+                                                onChange={handleInputChange}
+                                                max={new Date().toISOString().split('T')[0]}
+                                                className={`w-full px-4 py-3 bg-white border rounded-xl text-gray-900 focus:outline-none focus:ring-2 transition-all duration-300 ${errors.dateOfBirth
+                                                        ? 'border-red-300 focus:ring-red-200'
+                                                        : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
+                                                    }`}
+                                            />
+                                            {errors.dateOfBirth && (
+                                                <p className="mt-2 text-sm text-red-600">{errors.dateOfBirth}</p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Gender *
+                                            </label>
+                                            <select
+                                                name="gender"
+                                                value={childFormData.gender}
+                                                onChange={handleInputChange}
+                                                className={`w-full px-4 py-3 bg-white border rounded-xl text-gray-900 focus:outline-none focus:ring-2 transition-all duration-300 ${errors.gender
+                                                        ? 'border-red-300 focus:ring-red-200'
+                                                        : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
+                                                    }`}
+                                            >
+                                                <option value="">Select gender</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                            {errors.gender && (
+                                                <p className="mt-2 text-sm text-red-600">{errors.gender}</p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Blood Group
+                                            </label>
+                                            <select
+                                                name="bloodGroup"
+                                                value={childFormData.bloodGroup}
+                                                onChange={handleInputChange}
+                                                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-300"
+                                            >
+                                                <option value="">Select blood group</option>
+                                                <option value="A+">A+</option>
+                                                <option value="A-">A-</option>
+                                                <option value="B+">B+</option>
+                                                <option value="B-">B-</option>
+                                                <option value="AB+">AB+</option>
+                                                <option value="AB-">AB-</option>
+                                                <option value="O+">O+</option>
+                                                <option value="O-">O-</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Allergies
+                                            </label>
+                                            <textarea
+                                                name="allergies"
+                                                placeholder="List any known allergies"
+                                                value={childFormData.allergies}
+                                                onChange={handleInputChange}
+                                                rows={3}
+                                                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-300"
+                                            />
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Medical Conditions
+                                            </label>
+                                            <textarea
+                                                name="medicalConditions"
+                                                placeholder="List any medical conditions"
+                                                value={childFormData.medicalConditions}
+                                                onChange={handleInputChange}
+                                                rows={3}
+                                                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-300"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAddChildForm(false);
+                                                setErrors({});
+                                            }}
+                                            className="flex-1 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all duration-300"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 disabled:opacity-50"
+                                        >
+                                            {loading ? 'Adding...' : 'Add Child'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        ) : selectedChild ? (
+                            /* Child Details and Vaccinations */
+                            <div className="space-y-6">
+                                {/* Child Info Card */}
+                                <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-8 shadow-xl">
+                                    <div className="flex items-start justify-between mb-6">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">{selectedChild.name}</h2>
+                                            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                                                <span className="flex items-center gap-1">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                    Born: {new Date(selectedChild.dateOfBirth).toLocaleDateString()}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    Age: {calculateAgeInMonths(selectedChild.dateOfBirth)} months
+                                                </span>
+                                                {selectedChild.bloodGroup && (
+                                                    <span className="flex items-center gap-1">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                                        </svg>
+                                                        Blood: {selectedChild.bloodGroup}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-3xl font-bold text-blue-600 mb-1">
+                                                {getVaccinationProgress(selectedChild)}%
+                                            </div>
+                                            <div className="text-xs text-gray-500">Vaccination Complete</div>
+                                        </div>
+                                    </div>
+
+                                    {selectedChild.allergies && (
+                                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <p className="text-sm font-semibold text-yellow-800 mb-1">⚠️ Allergies:</p>
+                                            <p className="text-sm text-yellow-700">{selectedChild.allergies}</p>
+                                        </div>
+                                    )}
+
+                                    {selectedChild.medicalConditions && (
+                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <p className="text-sm font-semibold text-blue-800 mb-1">📋 Medical Conditions:</p>
+                                            <p className="text-sm text-blue-700">{selectedChild.medicalConditions}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Vaccination Schedule */}
+                                <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-8 shadow-xl">
+                                    <div className="mb-6">
+                                        <h3 className="text-xl font-bold text-gray-800 mb-2">Vaccination Schedule</h3>
+                                        <p className="text-sm text-gray-600">Track your child's immunization progress</p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {vaccinationSchedule.map((vaccine, index) => {
+                                            const vaccination = selectedChild.vaccinations?.find(v => v.name === vaccine.name);
+                                            const isCompleted = vaccination?.isCompleted || false;
+                                            const estimatedDate = calculateVaccinationDate(selectedChild.dateOfBirth, vaccine.ageInMonths);
+                                            const overdue = isOverdue(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
+                                            const upcoming = isUpcoming(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
+
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className={`p-4 rounded-xl border-2 transition-all duration-300 ${isCompleted
+                                                            ? 'bg-green-50 border-green-200'
+                                                            : overdue
+                                                                ? 'bg-red-50 border-red-200'
+                                                                : upcoming
+                                                                    ? 'bg-yellow-50 border-yellow-200'
+                                                                    : 'bg-gray-50 border-gray-200'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="flex-shrink-0 pt-1">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isCompleted}
+                                                                onChange={() => handleVaccinationToggle(vaccine.name)}
+                                                                className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                                                            />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div>
+                                                                    <h4 className={`font-semibold ${isCompleted ? 'text-green-800 line-through' : 'text-gray-800'
+                                                                        }`}>
+                                                                        {vaccine.name}
+                                                                    </h4>
+                                                                    <p className="text-sm text-gray-600 mt-0.5">{vaccine.description}</p>
+                                                                    <div className="flex items-center gap-4 mt-2 text-xs">
+                                                                        <span className={`font-medium ${isCompleted ? 'text-green-600' : 'text-gray-600'
+                                                                            }`}>
+                                                                            Age: {vaccine.ageInMonths === 0 ? 'At birth' : `${vaccine.ageInMonths} months`}
+                                                                        </span>
+                                                                        <span className={`px-2 py-1 rounded-full ${isCompleted
+                                                                                ? 'bg-green-200 text-green-800'
+                                                                                : overdue
+                                                                                    ? 'bg-red-200 text-red-800'
+                                                                                    : upcoming
+                                                                                        ? 'bg-yellow-200 text-yellow-800'
+                                                                                        : 'bg-gray-200 text-gray-800'
+                                                                            }`}>
+                                                                            {isCompleted
+                                                                                ? `✓ Completed ${vaccination.completedDate ? new Date(vaccination.completedDate).toLocaleDateString() : ''}`
+                                                                                : overdue
+                                                                                    ? '⚠️ Overdue'
+                                                                                    : upcoming
+                                                                                        ? '📅 Upcoming'
+                                                                                        : `📅 ${estimatedDate}`
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            /* No Child Selected */
+                            <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-12 shadow-xl text-center">
+                                <svg className="w-20 h-20 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <h3 className="text-xl font-bold text-gray-700 mb-2">No Child Selected</h3>
+                                <p className="text-gray-500 mb-6">Add a child to start tracking their health records</p>
+                                <button
+                                    onClick={() => setShowAddChildForm(true)}
+                                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+                                >
+                                    Add Child
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

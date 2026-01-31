@@ -89,15 +89,7 @@ export default function Nav() {
                     <NavLink
                         to="/chat"
                         className={({ isActive }) =>
-                            `relative hover:opacity-85  ${isActive ? `before:content-[''] hover:opacity-100 before:absolute  before:left-0 before:right-0 before:bottom-[-5px] before:h-[2px] before:bg-secondary before:scale-x-125` : " opacity-70"}`
-                        }
-                    >
-                        Profile
-                    </NavLink>
-                    <NavLink
-                        to="/chat"
-                        className={({ isActive }) =>
-                            `relative hover:opacity-85  ${isActive ? `before:content-[''] hover:opacity-100 before:absolute  before:left-0 before:right-0 before:bottom-[-5px] before:h-[2px] before:bg-secondary before:scale-x-125` : " opacity-70"}`
+                            `relative hover:opacity-85  ${isActive ? `before:content-[''] hover:opacity-100 before:absolute  before:left-0 before:right-0 before:bottom-[-5px] before:h-0.5 before:bg-secondary before:scale-x-125` : " opacity-70"}`
                         }
                     >
                         Appointment
@@ -107,26 +99,10 @@ export default function Nav() {
                 <div className="flex items-center gap-4">
                     {logIn ?
                         <div className="relative drop cursor-pointer" >
-                            <div className=" ">
-                                <img  src={logIn.photo} className="rounded-[50%] border-secondary border object-center object-cover  w-[50px] " alt="" />
-                            </div>
-                            <div className={`drop `}>
-                                <div className=" flex flex-col w-[150px] opacity-100 my-2">
-                                    <NavLink className='my-2 flex-col flex  items-start px-8 justify-center '
-                                        to='/profile'>
-                                        <span className="line-clamp-1 text-left">Profile</span>
-                                    </NavLink>
-                                    <NavLink className='my-2 flex-col flex items-start px-8  justify-center'>
-                                        <span className="line-clamp-1 text-left ">Log Out</span>
-                                    </NavLink>
-                                </div>
-                            </div>
+                            profile
                         </div>
                         : < NavLink to={'/login'} className="outline-1 px-4 py-2 rounded-4xl min-w-fit cursor-pointer " > Sign in </NavLink>
                     }
-                    {logIn ? <NavLink to='/contact'><img src="/contact.png" className="outline-1  px-2 py-2 rounded-[50%] bject-center object-cover l w-[50px] bg-secondary cursor-pointer text-white " /></NavLink> : <NavLink to='/contact'>
-                        <button className="outline-1 px-4 py-2 rounded-4xl bg-secondary cursor-pointer text-white " >Contact</button>
-                    </NavLink>}
                 </div>
             </nav>
         </>

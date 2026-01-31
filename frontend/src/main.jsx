@@ -11,6 +11,10 @@ import Register from './components/Register.jsx'
 import Profile from './Profile/Profile.jsx'
 import UserProfile from './components/UserProfile.jsx'
 import PrivateRoute from './components/PrivateRoute.jsx'
+import Failure from "./components/Failure";
+import PaymentForm from "./components/PaymentForm";
+import Success from "./components/Success";
+
 
 const router = createBrowserRouter(createRoutesFromElements(
   <Route path='/' element={<App />}>
@@ -18,7 +22,9 @@ const router = createBrowserRouter(createRoutesFromElements(
     <Route path='/chat' element={<Chat />} />
     <Route path='/login' element={<Login />} />
     <Route path='/register' element={<Register />} />
-    
+    <Route path="/payment" element={<PaymentForm />} />
+    <Route path="/payment-success" element={<Success />} />
+    <Route path="/payment-failure" element={<Failure />} />
     {/* Protected Routes */}
     <Route path='/profile' element={
       <PrivateRoute>

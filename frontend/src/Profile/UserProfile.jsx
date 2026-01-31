@@ -7,6 +7,10 @@ export default function UserProfile() {
     const [selectedChild, setSelectedChild] = useState(null);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    const [updatingVaccination, setUpdatingVaccination] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [childToDelete, setChildToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const [childFormData, setChildFormData] = useState({
         name: '',
@@ -25,9 +29,9 @@ export default function UserProfile() {
         try {
             const response = await childrenAPI.getAll();
             const childrenData = response.data.data || [];
-            
+
             setChildren(childrenData);
-            
+
             if (childrenData.length > 0 && !selectedChild) {
                 setSelectedChild(childrenData[0]);
             }
@@ -127,30 +131,76 @@ export default function UserProfile() {
         }
     };
 
-    const handleVaccinationToggle = async (vaccination) => {
-        if (!selectedChild) return;
+    const handleDeleteClick = (child, e) => {
+        e.stopPropagation();
+        setChildToDelete(child);
+        setShowDeleteModal(true);
+    };
 
-        const newIsCompleted = !vaccination.isCompleted;
+    const confirmDelete = async () => {
+        if (!childToDelete) return;
 
+        setDeleting(true);
         try {
-            await childrenAPI.updateVaccination(
-                selectedChild._id,
-                vaccination._id,
-                {
-                    isCompleted: newIsCompleted,
-                    completedDate: newIsCompleted ? new Date().toISOString() : null
-                }
-            );
+            await childrenAPI.delete(childToDelete._id);
+
+            if (selectedChild?._id === childToDelete._id) {
+                setSelectedChild(null);
+            }
 
             await fetchChildren();
             
-            // Update selected child
-            const updatedChild = children.find(c => c._id === selectedChild._id);
-            if (updatedChild) {
+            setShowDeleteModal(false);
+            setChildToDelete(null);
+        } catch (error) {
+            console.error('Error deleting child:', error);
+            alert(error.response?.data?.message || 'Failed to delete child. Please try again.');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setChildToDelete(null);
+    };
+
+    const handleVaccinationClick = async (vaccination, index, event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!selectedChild) return;
+
+        if (vaccination.isCompleted || updatingVaccination === index) return;
+
+        setUpdatingVaccination(index);
+
+        const vaccinationId = vaccination._id || vaccination.name;
+        const completedDate = new Date().toISOString();
+
+        try {
+            const response = await childrenAPI.updateVaccination(
+                selectedChild._id,
+                vaccinationId,
+                {
+                    isCompleted: true,
+                    completedDate: completedDate
+                }
+            );
+
+            if (response.data.success) {
+                const updatedChild = response.data.data;
                 setSelectedChild(updatedChild);
+
+                setChildren(prev =>
+                    prev.map(c => c._id === updatedChild._id ? updatedChild : c)
+                );
             }
         } catch (error) {
             console.error('Error updating vaccination:', error);
+            alert('Failed to update vaccination. Please try again.');
+        } finally {
+            setUpdatingVaccination(null);
         }
     };
 
@@ -206,38 +256,61 @@ export default function UserProfile() {
                                     {children.map((child) => (
                                         <div
                                             key={child._id}
-                                            onClick={() => setSelectedChild(child)}
                                             className={`p-4 rounded-xl cursor-pointer transition-all duration-300 ${selectedChild?._id === child._id
-                                                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                                                    : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                                                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                                                : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
                                                 }`}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${selectedChild?._id === child._id
+                                            <div className="flex items-start gap-3">
+                                                <div 
+                                                    className="flex-1 flex items-center gap-3"
+                                                    onClick={() => setSelectedChild(child)}
+                                                >
+                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${selectedChild?._id === child._id
                                                         ? 'bg-white/20'
                                                         : 'bg-blue-100 text-blue-600'
-                                                    }`}>
-                                                    {child.name.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-semibold">{child.name}</h3>
-                                                    <p className={`text-sm ${selectedChild?._id === child._id ? 'text-white/80' : 'text-gray-500'
                                                         }`}>
-                                                        {calculateAgeInMonths(child.dateOfBirth)} months old
-                                                    </p>
+                                                        {child.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-semibold truncate">{child.name}</h3>
+                                                        <p className={`text-sm ${selectedChild?._id === child._id ? 'text-white/80' : 'text-gray-500'
+                                                            }`}>
+                                                            {calculateAgeInMonths(child.dateOfBirth)} months old
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className={`text-xs font-semibold ${selectedChild?._id === child._id ? 'text-white' : 'text-blue-600'
-                                                        }`}>
-                                                        {getVaccinationProgress(child)}%
+                                                
+                                                {/* Progress and Delete Section */}
+                                                <div className="flex items-center gap-2">
+                                                    <div className="text-right">
+                                                        <div className={`text-xs font-semibold ${selectedChild?._id === child._id ? 'text-white' : 'text-blue-600'
+                                                            }`}>
+                                                            {getVaccinationProgress(child)}%
+                                                        </div>
+                                                        <div className="w-16 h-1.5 bg-white/30 rounded-full mt-1">
+                                                            <div
+                                                                className={`h-full rounded-full ${selectedChild?._id === child._id ? 'bg-white' : 'bg-blue-600'
+                                                                    }`}
+                                                                style={{ width: `${getVaccinationProgress(child)}%` }}
+                                                            ></div>
+                                                        </div>
                                                     </div>
-                                                    <div className="w-16 h-1.5 bg-white/30 rounded-full mt-1">
-                                                        <div
-                                                            className={`h-full rounded-full ${selectedChild?._id === child._id ? 'bg-white' : 'bg-blue-600'
-                                                                }`}
-                                                            style={{ width: `${getVaccinationProgress(child)}%` }}
-                                                        ></div>
-                                                    </div>
+                                                    
+                                                    {/* DELETE BUTTON - ALWAYS VISIBLE */}
+                                                    <button
+                                                        onClick={(e) => handleDeleteClick(child, e)}
+                                                        className={`p-2 rounded-lg transition-all duration-200 flex-shrink-0 ${
+                                                            selectedChild?._id === child._id
+                                                                ? 'bg-white/20 hover:bg-white/30 text-white'
+                                                                : 'bg-red-50 hover:bg-red-100 text-red-600'
+                                                        }`}
+                                                        title="Delete child"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -286,8 +359,8 @@ export default function UserProfile() {
                                                 value={childFormData.name}
                                                 onChange={handleInputChange}
                                                 className={`w-full px-4 py-3 bg-white border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-300 ${errors.name
-                                                        ? 'border-red-300 focus:ring-red-200'
-                                                        : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
+                                                    ? 'border-red-300 focus:ring-red-200'
+                                                    : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
                                                     }`}
                                             />
                                             {errors.name && (
@@ -306,8 +379,8 @@ export default function UserProfile() {
                                                 onChange={handleInputChange}
                                                 max={new Date().toISOString().split('T')[0]}
                                                 className={`w-full px-4 py-3 bg-white border rounded-xl text-gray-900 focus:outline-none focus:ring-2 transition-all duration-300 ${errors.dateOfBirth
-                                                        ? 'border-red-300 focus:ring-red-200'
-                                                        : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
+                                                    ? 'border-red-300 focus:ring-red-200'
+                                                    : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
                                                     }`}
                                             />
                                             {errors.dateOfBirth && (
@@ -324,8 +397,8 @@ export default function UserProfile() {
                                                 value={childFormData.gender}
                                                 onChange={handleInputChange}
                                                 className={`w-full px-4 py-3 bg-white border rounded-xl text-gray-900 focus:outline-none focus:ring-2 transition-all duration-300 ${errors.gender
-                                                        ? 'border-red-300 focus:ring-red-200'
-                                                        : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
+                                                    ? 'border-red-300 focus:ring-red-200'
+                                                    : 'border-gray-300 focus:ring-blue-200 focus:border-blue-500'
                                                     }`}
                                             >
                                                 <option value="">Select gender</option>
@@ -477,27 +550,38 @@ export default function UserProfile() {
                                             const estimatedDate = calculateVaccinationDate(selectedChild.dateOfBirth, vaccine.ageInMonths);
                                             const overdue = isOverdue(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
                                             const upcoming = isUpcoming(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
+                                            const isUpdating = updatingVaccination === index;
 
                                             return (
                                                 <div
                                                     key={index}
                                                     className={`p-4 rounded-xl border-2 transition-all duration-300 ${isCompleted
-                                                            ? 'bg-green-50 border-green-200'
-                                                            : overdue
-                                                                ? 'bg-red-50 border-red-200'
-                                                                : upcoming
-                                                                    ? 'bg-yellow-50 border-yellow-200'
-                                                                    : 'bg-gray-50 border-gray-200'
-                                                        }`}
+                                                        ? 'bg-green-50 border-green-200'
+                                                        : overdue
+                                                            ? 'bg-red-50 border-red-200'
+                                                            : upcoming
+                                                                ? 'bg-yellow-50 border-yellow-200'
+                                                                : 'bg-gray-50 border-gray-200'
+                                                        } ${isUpdating ? 'opacity-50 pointer-events-none' : ''}`}
                                                 >
                                                     <div className="flex items-start gap-4">
-                                                        <div className="flex-shrink-0 pt-1">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isCompleted}
-                                                                onChange={() => handleVaccinationToggle(vaccine)}
-                                                                className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
-                                                            />
+                                                        <div
+                                                            className="flex-shrink-0 pt-1 cursor-pointer"
+                                                            onClick={(e) => handleVaccinationClick(vaccine, index, e)}
+                                                        >
+                                                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isCompleted
+                                                                    ? 'bg-green-500 border-green-500'
+                                                                    : 'bg-white border-gray-300 hover:border-blue-500'
+                                                                } ${isCompleted || isUpdating ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                {isCompleted && (
+                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                )}
+                                                                {isUpdating && (
+                                                                    <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <div className="flex-1">
                                                             <div className="flex items-start justify-between gap-2">
@@ -513,12 +597,12 @@ export default function UserProfile() {
                                                                             Age: {vaccine.ageInMonths === 0 ? 'At birth' : `${vaccine.ageInMonths} months`}
                                                                         </span>
                                                                         <span className={`px-2 py-1 rounded-full ${isCompleted
-                                                                                ? 'bg-green-200 text-green-800'
-                                                                                : overdue
-                                                                                    ? 'bg-red-200 text-red-800'
-                                                                                    : upcoming
-                                                                                        ? 'bg-yellow-200 text-yellow-800'
-                                                                                        : 'bg-gray-200 text-gray-800'
+                                                                            ? 'bg-green-200 text-green-800'
+                                                                            : overdue
+                                                                                ? 'bg-red-200 text-red-800'
+                                                                                : upcoming
+                                                                                    ? 'bg-yellow-200 text-yellow-800'
+                                                                                    : 'bg-gray-200 text-gray-800'
                                                                             }`}>
                                                                             {isCompleted
                                                                                 ? `✓ Completed ${vaccine.completedDate ? new Date(vaccine.completedDate).toLocaleDateString() : ''}`
@@ -559,6 +643,55 @@ export default function UserProfile() {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                        <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
+                            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        
+                        <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+                            Delete Child Profile?
+                        </h3>
+                        
+                        <p className="text-gray-600 text-center mb-2">
+                            Are you sure you want to delete <span className="font-semibold text-gray-900">{childToDelete?.name}</span>'s profile?
+                        </p>
+                        
+                        <p className="text-sm text-red-600 text-center mb-6">
+                            This will permanently delete all health records and vaccination history. This action cannot be undone.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={cancelDelete}
+                                disabled={deleting}
+                                className="flex-1 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                disabled={deleting}
+                                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {deleting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

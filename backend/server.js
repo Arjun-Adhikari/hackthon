@@ -9,6 +9,7 @@ import authRoutes from './route/authroute.js';
 import childRoutes from './route/Children.route.js';
 import { Client } from "@googlemaps/google-maps-services-js";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import user from './Model/User.model.js'
 
 // Load env vars
 dotenv.config();
@@ -187,6 +188,44 @@ User question: ${userMessage}`;
         res.status(500).json({ error: "Failed to process chat request" });
     }
 });
+
+
+app.put('/api/user/verify', async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "User ID is required"
+            });
+        }
+
+        // 2. Update the user in MongoDB
+        const updatedUser = await user.findByIdAndUpdate(
+            userId,
+            { isVerified: true },
+            { new: true } // Returns the document AFTER the update
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // 3. Send back the updated user
+        res.status(200).json({
+            success: true,
+            message: "User successfully verified in database",
+            data: updatedUser
+        });
+    } catch (error) {
+        console.error('Error updating child:', error);
+        res.status(500).json({ error: 'Failed to update child' });
+    }
+})
 
 // Error handling middleware
 app.use((err, req, res, next) => {

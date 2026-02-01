@@ -1,7 +1,26 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from '../context/AuthContext';
+import { useEffect } from "react";
+import axios from "axios";
+
+
 
 const Success = () => {
+    const { user } = useAuth();
+
+    const handleVerify = async () => {
+        try {
+            const response = await axios.put('http://localhost:5000/api/user/verify',{"userId":user.id})
+            console.log(response.data);
+        } catch (error) {
+            console.error("Error verifying email:", error);
+        }
+    };
+
+    handleVerify();
+
+
     const navigate = useNavigate();
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -16,7 +35,10 @@ const Success = () => {
                     Thank you for your payment. Your transaction has been processed successfully.
                 </p>
                 <button
-                    onClick={() => navigate("/")}
+                    onClick={() => {
+                        handleVerify();
+                        navigate("/");
+                    }}
                     className="w-full bg-gray-900 hover:bg-black text-white font-semibold py-3 rounded-xl transition duration-200"
                 >
                     Go to Homepage

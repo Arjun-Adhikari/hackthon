@@ -38,16 +38,16 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await authAPI.login(credentials);
             const { user, token } = response.data.data;
-            
+
             localStorage.setItem('token', token);
             setToken(token);
             setUser(user);
-            
+
             return { success: true };
         } catch (error) {
-            return { 
-                success: false, 
-                message: error.response?.data?.message || 'Login failed' 
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Login failed'
             };
         }
     };
@@ -56,16 +56,16 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await authAPI.register(userData);
             const { user, token } = response.data.data;
-            
+
             localStorage.setItem('token', token);
             setToken(token);
             setUser(user);
-            
+
             return { success: true };
         } catch (error) {
-            return { 
-                success: false, 
-                message: error.response?.data?.message || 'Registration failed' 
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Registration failed'
             };
         }
     };
@@ -76,6 +76,17 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    const checkAuthStatus = async () => {
+        if (token) {
+            try {
+                const response = await authAPI.getMe();
+                setUser(response.data.data.user); // This updates isVerified to true
+            } catch (error) {
+                console.error('Refresh error:', error);
+            }
+        }
+    };
+
     const value = {
         user,
         token,
@@ -83,6 +94,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        checkAuthStatus,
         isAuthenticated: !!user
     };
 

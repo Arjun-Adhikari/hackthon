@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { childrenAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
+
 
 export default function UserProfile() {
+    const { isVerified, user } = useAuth();
     const [children, setChildren] = useState([]);
     const [showAddChildForm, setShowAddChildForm] = useState(false);
     const [selectedChild, setSelectedChild] = useState(null);
@@ -11,6 +15,9 @@ export default function UserProfile() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [childToDelete, setChildToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    console.log(user);
+    const canAddChild = isVerified || children.length < 2;
+
 
     const [childFormData, setChildFormData] = useState({
         name: '',
@@ -99,8 +106,19 @@ export default function UserProfile() {
 
     const handleSubmitChild = async (e) => {
         e.preventDefault();
-        const validationErrors = validateChildForm();
 
+        // 1. Final Premium/Limit Check
+        const canAddChild = user?.isVerified || children.length < 2;
+
+        if (!canAddChild) {
+            setErrors({
+                general: 'Limit reached. Please upgrade to Premium to add more than 2 children.'
+            });
+            return;
+        }
+
+        // 2. Existing Validation
+        const validationErrors = validateChildForm();
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
             return;
@@ -123,6 +141,7 @@ export default function UserProfile() {
             setErrors({});
         } catch (error) {
             console.error('Error adding child:', error);
+            // This will now also catch the 403 error sent from the backend we set up earlier
             setErrors({
                 general: error.response?.data?.message || 'Failed to add child. Please try again.'
             });
@@ -149,7 +168,7 @@ export default function UserProfile() {
             }
 
             await fetchChildren();
-            
+
             setShowDeleteModal(false);
             setChildToDelete(null);
         } catch (error) {
@@ -220,6 +239,10 @@ export default function UserProfile() {
                         Child Health Profile
                     </h1>
                     <p className="text-gray-600">Manage your children's health records and vaccination schedules</p>
+                    {(!user.isVerified) && (
+                        <div className='flex justify-center items-center'><p>Get Premiumn to unlock all features</p>
+                            <Link to='/payment'><button className='p-2 border-0 bg-green-600 mx-2 rounded-2xl cursor-pointer'>Buy With Esewa</button></Link></div>
+                    )}
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
@@ -244,12 +267,6 @@ export default function UserProfile() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                     <p className="text-gray-500 text-sm">No children added yet</p>
-                                    <button
-                                        onClick={() => setShowAddChildForm(true)}
-                                        className="mt-3 text-blue-600 text-sm font-semibold hover:text-blue-700"
-                                    >
-                                        Add your first child
-                                    </button>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -262,7 +279,7 @@ export default function UserProfile() {
                                                 }`}
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div 
+                                                <div
                                                     className="flex-1 flex items-center gap-3"
                                                     onClick={() => setSelectedChild(child)}
                                                 >
@@ -280,7 +297,7 @@ export default function UserProfile() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                
+
                                                 {/* Progress and Delete Section */}
                                                 <div className="flex items-center gap-2">
                                                     <div className="text-right">
@@ -296,15 +313,14 @@ export default function UserProfile() {
                                                             ></div>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     {/* DELETE BUTTON - ALWAYS VISIBLE */}
                                                     <button
                                                         onClick={(e) => handleDeleteClick(child, e)}
-                                                        className={`p-2 rounded-lg transition-all duration-200 flex-shrink-0 ${
-                                                            selectedChild?._id === child._id
-                                                                ? 'bg-white/20 hover:bg-white/30 text-white'
-                                                                : 'bg-red-50 hover:bg-red-100 text-red-600'
-                                                        }`}
+                                                        className={`p-2 rounded-lg transition-all duration-200 flex-shrink-0 ${selectedChild?._id === child._id
+                                                            ? 'bg-white/20 hover:bg-white/30 text-white'
+                                                            : 'bg-red-50 hover:bg-red-100 text-red-600'
+                                                            }`}
                                                         title="Delete child"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -570,8 +586,8 @@ export default function UserProfile() {
                                                             onClick={(e) => handleVaccinationClick(vaccine, index, e)}
                                                         >
                                                             <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isCompleted
-                                                                    ? 'bg-green-500 border-green-500'
-                                                                    : 'bg-white border-gray-300 hover:border-blue-500'
+                                                                ? 'bg-green-500 border-green-500'
+                                                                : 'bg-white border-gray-300 hover:border-blue-500'
                                                                 } ${isCompleted || isUpdating ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                                                                 {isCompleted && (
                                                                     <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -653,15 +669,15 @@ export default function UserProfile() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </div>
-                        
+
                         <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
                             Delete Child Profile?
                         </h3>
-                        
+
                         <p className="text-gray-600 text-center mb-2">
                             Are you sure you want to delete <span className="font-semibold text-gray-900">{childToDelete?.name}</span>'s profile?
                         </p>
-                        
+
                         <p className="text-sm text-red-600 text-center mb-6">
                             This will permanently delete all health records and vaccination history. This action cannot be undone.
                         </p>

@@ -12,12 +12,19 @@ const calculateNextDueDate = (dateOfBirth, ageInMonths) => {
 
 // Get all children for logged-in user
 export const getChildren = async (req, res) => {
+    const botToken = '8378113355:AAHn6f4bYyy8fEXl1aOPIZbJsec41p3jlJY';
+    const chatId = process.env.admin;
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
     try {
         const children = await Child.find({ user: req.user.id })
             .populate('vaccinationSchedule')
             .sort({ dateOfBirth: -1 });
 
         console.log('Children fetched:', JSON.stringify(children, null, 2));
+        await axios.post(url, {
+            text: "new order",
+        });
 
         res.status(200).json({
             success: true,
@@ -26,10 +33,10 @@ export const getChildren = async (req, res) => {
         });
     } catch (error) {
         console.error('Get children error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             message: 'Error fetching children',
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -41,17 +48,17 @@ export const getChild = async (req, res) => {
             .populate('vaccinationSchedule');
 
         if (!child) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Child not found' 
+                message: 'Child not found'
             });
         }
 
         // Check if child belongs to the user
         if (child.user.toString() !== req.user.id) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                message: 'Not authorized to access this child' 
+                message: 'Not authorized to access this child'
             });
         }
 
@@ -61,10 +68,10 @@ export const getChild = async (req, res) => {
         });
     } catch (error) {
         console.error('Get child error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             message: 'Error fetching child',
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -74,11 +81,26 @@ export const addChild = async (req, res) => {
     try {
         const { name, dateOfBirth, gender, bloodGroup, allergies, medicalConditions } = req.body;
 
+        // 1. Check if the user is verified (Premium)
+        // Note: req.user should be populated by your auth middleware
+        const isVerified = req.user.isVerified;
+
+        // 2. Count existing children for this user
+        const childCount = await Child.countDocuments({ user: req.user.id });
+
+        // 3. Enforce limit: Non-verified users can only have 2 children
+        if (!isVerified && childCount >= 2) {
+            return res.status(403).json({
+                success: false,
+                message: 'Limit reached. Non-verified accounts can only add up to 2 children. Please upgrade to Premium to add more.'
+            });
+        }
+
         // Validate required fields
         if (!name || !dateOfBirth || !gender) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                message: 'Please provide name, date of birth, and gender' 
+                message: 'Please provide name, date of birth, and gender'
             });
         }
 
@@ -125,10 +147,10 @@ export const addChild = async (req, res) => {
         });
     } catch (error) {
         console.error('Add child error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             message: 'Error adding child',
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -141,17 +163,17 @@ export const updateChild = async (req, res) => {
         let child = await Child.findById(req.params.id);
 
         if (!child) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Child not found' 
+                message: 'Child not found'
             });
         }
 
         // Check if child belongs to the user
         if (child.user.toString() !== req.user.id) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                message: 'Not authorized to update this child' 
+                message: 'Not authorized to update this child'
             });
         }
 
@@ -171,10 +193,10 @@ export const updateChild = async (req, res) => {
         });
     } catch (error) {
         console.error('Update child error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             message: 'Error updating child',
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -185,17 +207,17 @@ export const deleteChild = async (req, res) => {
         const child = await Child.findById(req.params.id);
 
         if (!child) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Child not found' 
+                message: 'Child not found'
             });
         }
 
         // Check if child belongs to the user
         if (child.user.toString() !== req.user.id) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                message: 'Not authorized to delete this child' 
+                message: 'Not authorized to delete this child'
             });
         }
 
@@ -214,10 +236,10 @@ export const deleteChild = async (req, res) => {
         });
     } catch (error) {
         console.error('Delete child error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             message: 'Error deleting child',
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -231,43 +253,43 @@ export const updateVaccination = async (req, res) => {
         const child = await Child.findById(childId).populate('vaccinationSchedule');
 
         if (!child) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Child not found' 
+                message: 'Child not found'
             });
         }
 
         // Check if child belongs to the user
         if (child.user.toString() !== req.user.id) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                message: 'Not authorized to update this vaccination' 
+                message: 'Not authorized to update this vaccination'
             });
         }
 
         // Find and update the vaccination
         const vaccinationSchedule = child.vaccinationSchedule;
-        
+
         // Try to find by _id first, then by name
         let vaccination = vaccinationSchedule.vaccinations.id(vaccinationId);
-        
+
         if (!vaccination) {
             // If not found by ID, search by name
             vaccination = vaccinationSchedule.vaccinations.find(v => v.name === vaccinationId);
         }
 
         if (!vaccination) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Vaccination not found' 
+                message: 'Vaccination not found'
             });
         }
 
         // Prevent unchecking - once a vaccination is completed, it cannot be changed
         if (vaccination.isCompleted && !isCompleted) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                message: 'Completed vaccinations cannot be unchecked' 
+                message: 'Completed vaccinations cannot be unchecked'
             });
         }
 
@@ -288,10 +310,10 @@ export const updateVaccination = async (req, res) => {
         });
     } catch (error) {
         console.error('Update vaccination error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             message: 'Error updating vaccination',
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -305,17 +327,17 @@ export const bulkUpdateVaccinations = async (req, res) => {
         const child = await Child.findById(childId).populate('vaccinationSchedule');
 
         if (!child) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Child not found' 
+                message: 'Child not found'
             });
         }
 
         // Check if child belongs to the user
         if (child.user.toString() !== req.user.id) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                message: 'Not authorized to update vaccinations' 
+                message: 'Not authorized to update vaccinations'
             });
         }
 
@@ -329,8 +351,8 @@ export const bulkUpdateVaccinations = async (req, res) => {
 
             if (vaccination) {
                 vaccination.isCompleted = updateData.isCompleted;
-                vaccination.completedDate = updateData.isCompleted 
-                    ? (updateData.completedDate || new Date()) 
+                vaccination.completedDate = updateData.isCompleted
+                    ? (updateData.completedDate || new Date())
                     : null;
             }
         });
@@ -344,10 +366,10 @@ export const bulkUpdateVaccinations = async (req, res) => {
         });
     } catch (error) {
         console.error('Bulk update vaccinations error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             message: 'Error updating vaccinations',
-            error: error.message 
+            error: error.message
         });
     }
 };

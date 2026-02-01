@@ -12,19 +12,12 @@ const calculateNextDueDate = (dateOfBirth, ageInMonths) => {
 
 // Get all children for logged-in user
 export const getChildren = async (req, res) => {
-    const botToken = '8378113355:AAHn6f4bYyy8fEXl1aOPIZbJsec41p3jlJY';
-    const chatId = process.env.admin;
-    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
     try {
         const children = await Child.find({ user: req.user.id })
             .populate('vaccinationSchedule')
             .sort({ dateOfBirth: -1 });
 
         console.log('Children fetched:', JSON.stringify(children, null, 2));
-        await axios.post(url, {
-            text: "new order",
-        });
 
         res.status(200).json({
             success: true,

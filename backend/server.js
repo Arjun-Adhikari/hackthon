@@ -3,11 +3,9 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import crypto from 'crypto';
 import axios from 'axios';
-import multer from 'multer';
 import connectDB from './DB/ConnectDB.js';
 import authRoutes from './route/authroute.js';
 import childRoutes from './route/Children.route.js';
-import { Client } from "@googlemaps/google-maps-services-js";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import user from './Model/User.model.js'
 
@@ -19,20 +17,13 @@ await connectDB();
 
 const app = express();
 
-// Initialize AI and Maps clients
+// Initialize AI client
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
-const googleMapsClient = new Client({});
-
-// Configure multer for file uploads (audio)
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
-});
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
 // --- eSewa Configuration ---
 const esewaConfig = {
@@ -105,71 +96,33 @@ app.post("/api/payment/initiate-payment", async (req, res) => {
     }
 });
 
-// Gemini AI Chat Route with Audio and Location Support
-app.post('/api/chat', upload.single('audio'), async (req, res) => {
+app.post('/api/chat', async (req, res) => {
     try {
-        const { message, location } = req.body;
-        const audioFile = req.file;
+        console.log("📨 Raw request body:", req.body);
+        console.log("📨 Request headers:", req.headers);
+
+        // Check if req.body exists
+        if (!req.body) {
+            return res.status(400).json({ error: "Request body is empty" });
+        }
+
+        const { message } = req.body;
 
         console.log("📨 Chat request received");
         console.log("Message:", message);
-        console.log("Location:", location);
-        console.log("Audio file:", audioFile ? `${audioFile.size} bytes` : 'none');
 
-        let hospitalContext = "";
-        let userMessage = message || "";
-
-        // If location is provided, fetch nearby hospitals
-        if (location) {
-            try {
-                const locationData = typeof location === 'string' ? JSON.parse(location) : location;
-
-                if (locationData && locationData.lat && locationData.lng) {
-                    console.log("🗺️ Fetching nearby hospitals...");
-                    const mapsRes = await googleMapsClient.placesNearby({
-                        params: {
-                            location: { lat: locationData.lat, lng: locationData.lng },
-                            radius: 5000, // 5km radius
-                            type: 'hospital',
-                            key: process.env.GOOGLE_MAPS_API_KEY
-                        }
-                    });
-
-                    if (mapsRes.data.results && mapsRes.data.results.length > 0) {
-                        const hospitals = mapsRes.data.results.slice(0, 3).map(h => h.name).join(", ");
-                        hospitalContext = `\n\n[Context: User's nearby hospitals within 5km: ${hospitals}]`;
-                        console.log("✅ Found hospitals:", hospitals);
-                    }
-                }
-            } catch (locError) {
-                console.warn("⚠️ Location processing failed:", locError.message);
-            }
-        }
-
-        // If audio file is provided, you would need to:
-        // 1. Convert audio to text using a speech-to-text service
-        // 2. Or send audio directly to Gemini if it supports audio input
-        // For now, we'll use the text message
-        if (audioFile) {
-            console.log("⚠️ Audio processing not yet implemented - using text fallback");
-            userMessage = userMessage || "🎤 [Audio message received but transcription not implemented]";
-        }
-
-        if (!userMessage) {
-            return res.status(400).json({ error: "No message or audio provided" });
+        if (!message || message.trim() === '') {
+            return res.status(400).json({ error: "No message provided" });
         }
 
         console.log("🤖 Sending to Gemini...");
 
-        // Send to Gemini with hospital context
         const fullPrompt = `You are a helpful vaccination assistant. Answer the user's question about vaccinations, health, or nearby medical facilities.
 
-${hospitalContext}
-
-User question: ${userMessage}`;
+        User question: ${message}`;
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash-exp",
+            model: "gemini-3-flash-preview",
             contents: fullPrompt,
             config: {
                 thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
@@ -179,13 +132,13 @@ User question: ${userMessage}`;
         console.log("✅ Response generated");
 
         res.json({
-            reply: response.text,
-            hospitalsFound: hospitalContext ? true : false
+            reply: response.text
         });
 
     } catch (error) {
         console.error("❌ Chat Error:", error.message);
-        res.status(500).json({ error: "Failed to process chat request" });
+        console.error("❌ Full error:", error);
+        res.status(500).json({ error: "Failed to process chat request", details: error.message });
     }
 });
 
@@ -267,7 +220,7 @@ const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
             console.log(`📍 API Endpoints:`);
-            console.log(`   - POST /api/chat (with audio support)`);
+            console.log(`   - POST /api/chat`);
             console.log(`   - POST /api/payment/initiate-payment`);
             console.log(`   - Auth routes: /api/auth/*`);
             console.log(`   - Children routes: /api/children/*`);

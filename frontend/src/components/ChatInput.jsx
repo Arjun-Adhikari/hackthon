@@ -1,14 +1,11 @@
-import { Send, Mic, Square } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 export default function ChatInput({ 
   input, 
   setInput, 
   handleSubmit, 
   handleKeyPress, 
-  loading,
-  isRecording,
-  startRecording,
-  stopRecording
+  loading
 }) {
   return (
     <footer className="bg-white border-t border-gray-200 px-4 py-4">
@@ -20,27 +17,13 @@ export default function ChatInput({
           }} 
           className="flex gap-2 items-center"
         >
-          {/* Audio Recording Button */}
-          <button
-            type="button"
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={loading}
-            className={`p-3 rounded-xl transition-all ${
-              isRecording 
-                ? "bg-red-500 text-white animate-pulse" 
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {isRecording ? <Square className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-          </button>
-
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={isRecording ? "Recording audio..." : "How can I assist you..."}
-            disabled={loading || isRecording}
+            placeholder="How can I assist you..."
+            disabled={loading}
             className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 transition-all"
           />
 

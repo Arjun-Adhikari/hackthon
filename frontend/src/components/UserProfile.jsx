@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { childrenAPI } from '../services/api';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function UserProfile() {
     const [children, setChildren] = useState([]);
@@ -11,6 +12,7 @@ export default function UserProfile() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [childToDelete, setChildToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [isVaccinationExpanded, setIsVaccinationExpanded] = useState(false);
 
     const [childFormData, setChildFormData] = useState({
         name: '',
@@ -24,6 +26,11 @@ export default function UserProfile() {
     useEffect(() => {
         fetchChildren();
     }, []);
+
+    // Reset expanded state when child changes
+    useEffect(() => {
+        setIsVaccinationExpanded(false);
+    }, [selectedChild?._id]);
 
     const fetchChildren = async () => {
         try {
@@ -132,7 +139,7 @@ export default function UserProfile() {
     };
 
     const handleDeleteClick = (child, e) => {
-        e.stopPropagation(); // Prevent selecting the child when clicking delete
+        e.stopPropagation();
         setChildToDelete(child);
         setShowDeleteModal(true);
     };
@@ -144,15 +151,12 @@ export default function UserProfile() {
         try {
             await childrenAPI.delete(childToDelete._id);
 
-            // If the deleted child was selected, clear selection
             if (selectedChild?._id === childToDelete._id) {
                 setSelectedChild(null);
             }
 
-            // Refresh children list
             await fetchChildren();
             
-            // Close modal
             setShowDeleteModal(false);
             setChildToDelete(null);
         } catch (error) {
@@ -212,6 +216,22 @@ export default function UserProfile() {
         const vaccinations = child.vaccinationSchedule.vaccinations;
         const completed = vaccinations.filter(v => v.isCompleted).length;
         return Math.round((completed / vaccinations.length) * 100);
+    };
+
+    const getVaccinationStats = (child) => {
+        if (!child.vaccinationSchedule?.vaccinations) return { total: 0, completed: 0, overdue: 0, upcoming: 0 };
+        
+        const vaccinations = child.vaccinationSchedule.vaccinations;
+        const completed = vaccinations.filter(v => v.isCompleted).length;
+        const overdue = vaccinations.filter(v => isOverdue(child.dateOfBirth, v.ageInMonths, v.isCompleted)).length;
+        const upcoming = vaccinations.filter(v => isUpcoming(child.dateOfBirth, v.ageInMonths, v.isCompleted)).length;
+        
+        return {
+            total: vaccinations.length,
+            completed,
+            overdue,
+            upcoming
+        };
     };
 
     return (
@@ -533,90 +553,180 @@ export default function UserProfile() {
                                     )}
                                 </div>
 
-                                {/* Vaccination Schedule */}
-                                <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-8 shadow-xl">
-                                    <div className="mb-6">
-                                        <h3 className="text-xl font-bold text-gray-800 mb-2">Vaccination Schedule</h3>
-                                        <p className="text-sm text-gray-600">Track your child's immunization progress</p>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        {selectedChild.vaccinationSchedule?.vaccinations?.map((vaccine, index) => {
-                                            const isCompleted = vaccine.isCompleted;
-                                            const estimatedDate = calculateVaccinationDate(selectedChild.dateOfBirth, vaccine.ageInMonths);
-                                            const overdue = isOverdue(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
-                                            const upcoming = isUpcoming(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
-                                            const isUpdating = updatingVaccination === index;
-
-                                            return (
-                                                <div
-                                                    key={index}
-                                                    className={`p-4 rounded-xl border-2 transition-all duration-300 ${isCompleted
-                                                        ? 'bg-green-50 border-green-200'
-                                                        : overdue
-                                                            ? 'bg-red-50 border-red-200'
-                                                            : upcoming
-                                                                ? 'bg-yellow-50 border-yellow-200'
-                                                                : 'bg-gray-50 border-gray-200'
-                                                        } ${isUpdating ? 'opacity-50 pointer-events-none' : ''}`}
-                                                >
-                                                    <div className="flex items-start gap-4">
-                                                        <div
-                                                            className="flex-shrink-0 pt-1 cursor-pointer"
-                                                            onClick={(e) => handleVaccinationClick(vaccine, index, e)}
-                                                        >
-                                                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isCompleted
-                                                                    ? 'bg-green-500 border-green-500'
-                                                                    : 'bg-white border-gray-300 hover:border-blue-500'
-                                                                } ${isCompleted || isUpdating ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                                                                {isCompleted && (
-                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                                    </svg>
-                                                                )}
-                                                                {isUpdating && (
-                                                                    <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                                                )}
+                                {/* Vaccination Schedule - Collapsible */}
+                                <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
+                                    {/* Header - Always Visible */}
+                                    <div 
+                                        className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                                        onClick={() => setIsVaccinationExpanded(!isVaccinationExpanded)}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h3 className="text-xl font-bold text-gray-800">Vaccination Schedule</h3>
+                                                    {isVaccinationExpanded ? (
+                                                        <ChevronUp className="w-5 h-5 text-gray-500" />
+                                                    ) : (
+                                                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Summary Stats */}
+                                                {(() => {
+                                                    const stats = getVaccinationStats(selectedChild);
+                                                    return (
+                                                        <div className="flex flex-wrap gap-3 text-sm">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                                <span className="text-gray-600">
+                                                                    <span className="font-semibold text-green-600">{stats.completed}</span> Completed
+                                                                </span>
+                                                            </div>
+                                                            {stats.overdue > 0 && (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                                                    <span className="text-gray-600">
+                                                                        <span className="font-semibold text-red-600">{stats.overdue}</span> Overdue
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {stats.upcoming > 0 && (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                                                                    <span className="text-gray-600">
+                                                                        <span className="font-semibold text-yellow-600">{stats.upcoming}</span> Upcoming
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                                                                <span className="text-gray-600">
+                                                                    <span className="font-semibold text-gray-700">{stats.total - stats.completed}</span> Pending
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex items-start justify-between gap-2">
-                                                                <div>
-                                                                    <h4 className={`font-semibold ${isCompleted ? 'text-green-800 line-through' : 'text-gray-800'
-                                                                        }`}>
-                                                                        {vaccine.name}
-                                                                    </h4>
-                                                                    <p className="text-sm text-gray-600 mt-0.5">{vaccine.description}</p>
-                                                                    <div className="flex items-center gap-4 mt-2 text-xs">
-                                                                        <span className={`font-medium ${isCompleted ? 'text-green-600' : 'text-gray-600'
-                                                                            }`}>
-                                                                            Age: {vaccine.ageInMonths === 0 ? 'At birth' : `${vaccine.ageInMonths} months`}
-                                                                        </span>
-                                                                        <span className={`px-2 py-1 rounded-full ${isCompleted
-                                                                            ? 'bg-green-200 text-green-800'
-                                                                            : overdue
-                                                                                ? 'bg-red-200 text-red-800'
-                                                                                : upcoming
-                                                                                    ? 'bg-yellow-200 text-yellow-800'
-                                                                                    : 'bg-gray-200 text-gray-800'
-                                                                            }`}>
-                                                                            {isCompleted
-                                                                                ? `✓ Completed ${vaccine.completedDate ? new Date(vaccine.completedDate).toLocaleDateString() : ''}`
-                                                                                : overdue
-                                                                                    ? '⚠️ Overdue'
-                                                                                    : upcoming
-                                                                                        ? '📅 Upcoming'
-                                                                                        : `📅 ${estimatedDate}`
-                                                                            }
-                                                                        </span>
+                                                    );
+                                                })()}
+                                            </div>
+                                            
+                                            {/* Progress Ring */}
+                                            <div className="flex-shrink-0">
+                                                <div className="relative w-16 h-16">
+                                                    <svg className="w-16 h-16 transform -rotate-90">
+                                                        <circle
+                                                            cx="32"
+                                                            cy="32"
+                                                            r="28"
+                                                            stroke="#e5e7eb"
+                                                            strokeWidth="6"
+                                                            fill="none"
+                                                        />
+                                                        <circle
+                                                            cx="32"
+                                                            cy="32"
+                                                            r="28"
+                                                            stroke="#3b82f6"
+                                                            strokeWidth="6"
+                                                            fill="none"
+                                                            strokeDasharray={`${2 * Math.PI * 28}`}
+                                                            strokeDashoffset={`${2 * Math.PI * 28 * (1 - getVaccinationProgress(selectedChild) / 100)}`}
+                                                            className="transition-all duration-500"
+                                                        />
+                                                    </svg>
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <span className="text-sm font-bold text-gray-700">
+                                                            {getVaccinationProgress(selectedChild)}%
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Expandable Content */}
+                                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                                        isVaccinationExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+                                    }`}>
+                                        <div className="px-6 pb-6 border-t border-gray-200">
+                                            <div className="space-y-3 mt-6">
+                                                {selectedChild.vaccinationSchedule?.vaccinations?.map((vaccine, index) => {
+                                                    const isCompleted = vaccine.isCompleted;
+                                                    const estimatedDate = calculateVaccinationDate(selectedChild.dateOfBirth, vaccine.ageInMonths);
+                                                    const overdue = isOverdue(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
+                                                    const upcoming = isUpcoming(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
+                                                    const isUpdating = updatingVaccination === index;
+
+                                                    return (
+                                                        <div
+                                                            key={index}
+                                                            className={`p-4 rounded-xl border-2 transition-all duration-300 ${isCompleted
+                                                                ? 'bg-green-50 border-green-200'
+                                                                : overdue
+                                                                    ? 'bg-red-50 border-red-200'
+                                                                    : upcoming
+                                                                        ? 'bg-yellow-50 border-yellow-200'
+                                                                        : 'bg-gray-50 border-gray-200'
+                                                                } ${isUpdating ? 'opacity-50 pointer-events-none' : ''}`}
+                                                        >
+                                                            <div className="flex items-start gap-4">
+                                                                <div
+                                                                    className="flex-shrink-0 pt-1 cursor-pointer"
+                                                                    onClick={(e) => handleVaccinationClick(vaccine, index, e)}
+                                                                >
+                                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isCompleted
+                                                                            ? 'bg-green-500 border-green-500'
+                                                                            : 'bg-white border-gray-300 hover:border-blue-500'
+                                                                        } ${isCompleted || isUpdating ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                                        {isCompleted && (
+                                                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                        )}
+                                                                        {isUpdating && (
+                                                                            <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <div>
+                                                                            <h4 className={`font-semibold ${isCompleted ? 'text-green-800 line-through' : 'text-gray-800'
+                                                                                }`}>
+                                                                                {vaccine.name}
+                                                                            </h4>
+                                                                            <p className="text-sm text-gray-600 mt-0.5">{vaccine.description}</p>
+                                                                            <div className="flex items-center gap-4 mt-2 text-xs">
+                                                                                <span className={`font-medium ${isCompleted ? 'text-green-600' : 'text-gray-600'
+                                                                                    }`}>
+                                                                                    Age: {vaccine.ageInMonths === 0 ? 'At birth' : `${vaccine.ageInMonths} months`}
+                                                                                </span>
+                                                                                <span className={`px-2 py-1 rounded-full ${isCompleted
+                                                                                    ? 'bg-green-200 text-green-800'
+                                                                                    : overdue
+                                                                                        ? 'bg-red-200 text-red-800'
+                                                                                        : upcoming
+                                                                                            ? 'bg-yellow-200 text-yellow-800'
+                                                                                            : 'bg-gray-200 text-gray-800'
+                                                                                    }`}>
+                                                                                    {isCompleted
+                                                                                        ? `✓ Completed ${vaccine.completedDate ? new Date(vaccine.completedDate).toLocaleDateString() : ''}`
+                                                                                        : overdue
+                                                                                            ? '⚠️ Overdue'
+                                                                                            : upcoming
+                                                                                                ? '📅 Upcoming'
+                                                                                                : `📅 ${estimatedDate}`
+                                                                                    }
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -46,7 +46,6 @@ const childSchema = new mongoose.Schema({
     }
 });
 
-// Update the updatedAt field before saving
 childSchema.pre('save', function() {
     this.updatedAt = Date.now();
 });

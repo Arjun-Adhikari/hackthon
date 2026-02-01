@@ -14,7 +14,8 @@ import PrivateRoute from './components/PrivateRoute.jsx'
 import Failure from "./components/Failure";
 import PaymentForm from "./components/PaymentForm";
 import Success from "./components/Success";
-
+import Verfiy from './components/Verify.jsx'
+import Notify from './components/notify.jsx'
 
 const router = createBrowserRouter(createRoutesFromElements(
   <Route path='/' element={<App />}>
@@ -25,6 +26,8 @@ const router = createBrowserRouter(createRoutesFromElements(
     <Route path="/payment" element={<PaymentForm />} />
     <Route path="/payment-success" element={<Success />} />
     <Route path="/payment-failure" element={<Failure />} />
+    <Route path="/notify" element={<Notify />} />
+    
     {/* Protected Routes */}
     <Route path='/profile' element={
       <PrivateRoute>

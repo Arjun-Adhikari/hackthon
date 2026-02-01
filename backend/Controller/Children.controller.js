@@ -73,12 +73,7 @@ export const getChild = async (req, res) => {
 export const addChild = async (req, res) => {
     try {
         const { name, dateOfBirth, gender, bloodGroup, allergies, medicalConditions } = req.body;
-
-        // 1. Check if the user is verified (Premium)
-        // Note: req.user should be populated by your auth middleware
         const isVerified = req.user.isVerified;
-
-        // 2. Count existing children for this user
         const childCount = await Child.countDocuments({ user: req.user.id });
 
         // 3. Enforce limit: Non-verified users can only have 2 children
@@ -116,8 +111,7 @@ export const addChild = async (req, res) => {
         });
 
         console.log('Vaccination schedule created:', vaccinationSchedule._id);
-
-        // Create child
+        
         const child = await Child.create({
             user: req.user.id,
             name,
@@ -128,12 +122,8 @@ export const addChild = async (req, res) => {
             medicalConditions: medicalConditions || '',
             vaccinationSchedule: vaccinationSchedule._id
         });
-
         console.log('Child created with vaccination schedule:', child.vaccinationSchedule);
-
-        // Populate vaccination schedule before sending response
         await child.populate('vaccinationSchedule');
-
         res.status(201).json({
             success: true,
             data: child

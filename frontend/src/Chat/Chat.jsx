@@ -117,7 +117,7 @@ export default function Chat() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="flex flex-col h-[80vh] bg-gradient-to-br from-blue-50 to-indigo-100">
             <MessageList messages={messages} loading={loading} messagesEndRef={messagesEndRef} />
             <ChatInput
                 input={input}

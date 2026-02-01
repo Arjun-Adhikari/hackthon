@@ -10,15 +10,12 @@ const PaymentComponent = () => {
         setLoading(true);
 
         try {
-            // 1. Call your backend (Make sure the port matches your Express server, e.g., 5000)
             const response = await axios.post("http://localhost:5000/api/payment/initiate-payment", {
                 amount: 500,
-                productId: "ORDER_" + Date.now(), // eSewa needs a unique ID for every transaction
+                productId: "ORDER_" + Date.now(), 
             });
 
-            // 2. Your backend returns { url: "https://..." }
             if (response.data.url) {
-                // Redirect the user to eSewa's payment page
                 window.location.href = response.data.url;
             } else {
                 alert("Failed to get payment URL from backend");

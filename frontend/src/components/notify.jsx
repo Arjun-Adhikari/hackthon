@@ -13,21 +13,17 @@ function Notify() {
         setStatus('Sending...');
 
         try {
-            // Connects to your Node.js backend route
             const response = await axios.post('http://localhost:5000/api/sms/send', formData);
 
-            // WebPal returns "status: 'success'"
             if (response.data.status === 'success') {
                 setStatus(`✅ Success! Message ID: ${response.data.data.message_id}`);
-                setFormData({ to: '', message: '' }); // Clear form
+                setFormData({ to: '', message: '' }); 
             } else {
-                // Handle case where API responds but status isn't success
-                setStatus(`❌ Error: ${response.data.message}`);
+                setStatus(`Error: ${response.data.message}`);
             }
         } catch (error) {
-            // Extract the error message from the backend catch block
             const errorMsg = error.response?.data?.message || 'Failed to connect to the server.';
-            setStatus(`❌ Error: ${errorMsg}`);
+            setStatus(` Error: ${errorMsg}`);
             console.error("SMS Error:", error);
         }
     };

@@ -16,6 +16,8 @@ await connectDB();
 
 const app = express();
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
+const PORT = process.env.PORT || 5000;
+
 
 // Middleware
 app.use(cors());
@@ -24,11 +26,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // --- eSewa Configuration ---
 const esewaConfig = {
-    merchantId: process.env.ESEWA_MERCHANT_ID || "EPAYTEST",
-    successUrl: process.env.ESEWA_SUCCESS_URL || "http://localhost:5173/payment-success",
-    failureUrl: process.env.ESEWA_FAILURE_URL || "http://localhost:5173/payment-failure",
+    merchantId: process.env.ESEWA_MERCHANT_ID,
+    successUrl: process.env.ESEWA_SUCCESS_URL,
+    failureUrl: process.env.ESEWA_FAILURE_URL,
     esewaPaymentUrl: "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
-    secret: process.env.ESEWA_SECRET || "8gBm/:&EnhH.1/q",
+    secret: process.env.ESEWA_SECRET,
 };
 
 app.use('/api/auth', authRoutes);
@@ -92,6 +94,8 @@ app.post("/api/payment/initiate-payment", async (req, res) => {
     }
 });
 
+
+// This route will handle the all the response of the ai chat
 app.post('/api/chat', async (req, res) => {
     try {
         console.log("📨 Raw request body:", req.body);
@@ -102,6 +106,10 @@ app.post('/api/chat', async (req, res) => {
         }
 
         const { message, lat, long } = req.body;
+
+        console.log("📨 Chat request received");
+        console.log("Message:", message);
+
         if (!message || message.trim() === '') {
             return res.status(400).json({ error: "No message provided" });
         }
@@ -111,8 +119,11 @@ app.post('/api/chat', async (req, res) => {
         const geoData = await geoRes.json();
         const address = geoData.display_name;
 
-        const fullPrompt = `You are a helpful vaccination assistant. Answer the user's question about vaccinations, health, 
-        and send the  nearby medical facilities location based on the user's location. User question: ${message} location: ${address}`
+        const fullPrompt = `You are a helpful vaccination assistant. Answer the user's question about vaccinations, health, and send the  nearby medical facilities location based on the user's location.
+        User question: ${message}
+        location: ${address}`
+        console.log(fullPrompt);
+
 
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
@@ -129,13 +140,14 @@ app.post('/api/chat', async (req, res) => {
         });
 
     } catch (error) {
-        console.error(" Chat Error:", error.message);
-        console.error(" Full error:", error);
+        console.error("❌ Chat Error:", error.message);
+        console.error("❌ Full error:", error);
         res.status(500).json({ error: "Failed to process chat request", details: error.message });
     }
 });
 
 
+// This route will check the isverified field of the user once the payment is done through esewa
 app.put('/api/user/verify', async (req, res) => {
     try {
         const { userId } = req.body;
@@ -183,8 +195,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-// --- Helper Functions ---
-
+// Hashin the password for security
 function generateHmacSha256Hash(data, secret) {
     if (!data || !secret) {
         throw new Error("Both data and secret are required to generate a hash.");
@@ -206,7 +217,9 @@ function safeStringify(obj) {
     });
 }
 
-// --- NEW: SMS Sending Route ---
+
+
+// Handles sms routing
 app.post("/api/sms/send", async (req, res) => {
     try {
         const { to, message } = req.body;
@@ -230,6 +243,7 @@ app.post("/api/sms/send", async (req, res) => {
 
 
 
+// NEW: WebPal SMS Helper Function
 async function sendWebpalSMS(to, message) {
     const url = "https://workplace.webpal.it/api/v1/sms/send";
     const apiKey = process.env.WEBPAL_SMS_API_KEY || "dk_2aYxlabD_RgHV8bacdoL5RRBp6uirGcwXpOWTGhi51ePUfNfskWs8cX03";
@@ -251,15 +265,16 @@ async function sendWebpalSMS(to, message) {
     return response.data;
 }
 
-const PORT = process.env.PORT || 5000;
 
 (async () => {
     try {
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
+            console.log(`API Endpoints:`);
+
         });
     } catch (error) {
-        console.error('❌ Server startup error:', error);
+        console.error(' Server startup error:', error);
         process.exit(1);
     }
 })();

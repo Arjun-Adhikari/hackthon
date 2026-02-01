@@ -43,7 +43,7 @@ const Nav = () => {
                     {/* Logo/Brand */}
                     <div className="flex items-center">
                         <Link to="/" className="flex-shrink-0">
-                            <h1 className="text-white text-xl font-bold">AI Chat App</h1>
+                            <h1 className="text-white text-xl font-bold">Medico</h1>
                         </Link>
                     </div>
 

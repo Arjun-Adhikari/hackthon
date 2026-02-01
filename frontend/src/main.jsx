@@ -14,7 +14,6 @@ import PrivateRoute from './components/PrivateRoute.jsx'
 import Failure from "./components/Failure";
 import PaymentForm from "./components/PaymentForm";
 import Success from "./components/Success";
-import Verfiy from './components/Verify.jsx'
 import Notify from './components/notify.jsx'
 
 const router = createBrowserRouter(createRoutesFromElements(

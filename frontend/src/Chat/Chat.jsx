@@ -9,9 +9,7 @@ export default function Chat() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [children, setChildren] = useState([]);
     const [selectedChild, setSelectedChild] = useState(null);
-    const [loadingChildren, setLoadingChildren] = useState(false);
     const messagesEndRef = useRef(null);
     const [lat, setlat] = useState()
     const [long, setlong] = useState()

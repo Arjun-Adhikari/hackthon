@@ -24,6 +24,7 @@ Database (MongodbAtlas a cloud service provider)
 How can this project demo can be tested, following steps are listed below:
 
 Ps:This project is solely developed in a hackathon and it is only in the development phase not in production.
+THE ENV VARIABLE NEED TO BE CHANGED ACCORDING TO YOUR NEED, MAINLY GEMINI API KEY WHICH WILL BE EXPIRED.
 
 During testing this project payment gateway we need esewa testing dummy data.
 eSewa ID: 9806800001

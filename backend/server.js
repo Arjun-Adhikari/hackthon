@@ -8,6 +8,7 @@ import authRoutes from './route/authroute.js';
 import childRoutes from './route/Children.route.js';
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import user from './Model/User.model.js'
+import { log } from 'console';
 
 // Load env vars
 dotenv.config();
@@ -99,14 +100,13 @@ app.post("/api/payment/initiate-payment", async (req, res) => {
 app.post('/api/chat', async (req, res) => {
     try {
         console.log("📨 Raw request body:", req.body);
-        console.log("📨 Request headers:", req.headers);
 
         // Check if req.body exists
         if (!req.body) {
             return res.status(400).json({ error: "Request body is empty" });
         }
 
-        const { message } = req.body;
+        const { message, lat, long } = req.body;
 
         console.log("📨 Chat request received");
         console.log("Message:", message);
@@ -116,10 +116,15 @@ app.post('/api/chat', async (req, res) => {
         }
 
         console.log("🤖 Sending to Gemini...");
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${long}`);
+        const geoData = await geoRes.json();
+        const address = geoData.display_name;
 
-        const fullPrompt = `You are a helpful vaccination assistant. Answer the user's question about vaccinations, health, or nearby medical facilities.
+        const fullPrompt = `You are a helpful vaccination assistant. Answer the user's question about vaccinations, health, and send the  nearby medical facilities location based on the user's location.
+        User question: ${message}
+        location: ${address}`
+        console.log(fullPrompt);
 
-        User question: ${message}`;
 
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",

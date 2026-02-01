@@ -13,6 +13,8 @@ export default function Chat() {
     const [selectedChild, setSelectedChild] = useState(null);
     const [loadingChildren, setLoadingChildren] = useState(false);
     const messagesEndRef = useRef(null);
+    const [lat, setlat] = useState()
+    const [long, setlong] = useState()
 
     // Fetch user's children on component mount
     useEffect(() => {
@@ -32,6 +34,22 @@ export default function Chat() {
         };
         fetchChildren();
     }, []);
+
+    useEffect(() => {
+        function getCoords() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    setlat(latitude)
+                    setlong(longitude)
+                }, (err) => {
+                    console.warn(`ERROR(${err.code}): ${err.message}`);
+                });
+            }
+        }
+        getCoords();
+    }, [])
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,11 +76,16 @@ export default function Chat() {
 
         try {
             console.log(userText);
-            
+
             const chatPayload = {
                 message: userText,
-                childData: selectedChild || null
+                childData: selectedChild || null,
+                lat: lat,
+                long: long,
             };
+
+            console.log(chatPayload);
+            
 
             const response = await axios.post('http://localhost:5000/api/chat', chatPayload, {
                 headers: {

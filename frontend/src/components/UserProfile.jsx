@@ -156,7 +156,7 @@ export default function UserProfile() {
             }
 
             await fetchChildren();
-            
+
             setShowDeleteModal(false);
             setChildToDelete(null);
         } catch (error) {
@@ -220,12 +220,12 @@ export default function UserProfile() {
 
     const getVaccinationStats = (child) => {
         if (!child.vaccinationSchedule?.vaccinations) return { total: 0, completed: 0, overdue: 0, upcoming: 0 };
-        
+
         const vaccinations = child.vaccinationSchedule.vaccinations;
         const completed = vaccinations.filter(v => v.isCompleted).length;
         const overdue = vaccinations.filter(v => isOverdue(child.dateOfBirth, v.ageInMonths, v.isCompleted)).length;
         const upcoming = vaccinations.filter(v => isUpcoming(child.dateOfBirth, v.ageInMonths, v.isCompleted)).length;
-        
+
         return {
             total: vaccinations.length,
             completed,
@@ -316,11 +316,10 @@ export default function UserProfile() {
                                                     {/* Delete Button */}
                                                     <button
                                                         onClick={(e) => handleDeleteClick(child, e)}
-                                                        className={`p-1.5 rounded-lg transition-all duration-200 ${
-                                                            selectedChild?._id === child._id
+                                                        className={`p-1.5 rounded-lg transition-all duration-200 ${selectedChild?._id === child._id
                                                                 ? 'bg-white/20 hover:bg-white/30 text-white'
                                                                 : 'bg-red-50 hover:bg-red-100 text-red-600 opacity-0 group-hover:opacity-100'
-                                                        }`}
+                                                            }`}
                                                         title="Delete child"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -555,14 +554,14 @@ export default function UserProfile() {
 
                                 {/* Vaccination Schedule - Collapsible */}
                                 <div className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
-                                    {/* Header - Always Visible */}
-                                    <div 
-                                        className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                                    {/* Header - Always Visible and Clickable */}
+                                    <div
+                                        className="p-6 cursor-pointer select-none hover:bg-gray-50 transition-colors"
                                         onClick={() => setIsVaccinationExpanded(!isVaccinationExpanded)}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-2">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
                                                     <h3 className="text-xl font-bold text-gray-800">Vaccination Schedule</h3>
                                                     {isVaccinationExpanded ? (
                                                         <ChevronUp className="w-5 h-5 text-gray-500" />
@@ -570,164 +569,95 @@ export default function UserProfile() {
                                                         <ChevronDown className="w-5 h-5 text-gray-500" />
                                                     )}
                                                 </div>
-                                                
-                                                {/* Summary Stats */}
-                                                {(() => {
-                                                    const stats = getVaccinationStats(selectedChild);
-                                                    return (
-                                                        <div className="flex flex-wrap gap-3 text-sm">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                                                <span className="text-gray-600">
-                                                                    <span className="font-semibold text-green-600">{stats.completed}</span> Completed
-                                                                </span>
-                                                            </div>
-                                                            {stats.overdue > 0 && (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                                                    <span className="text-gray-600">
-                                                                        <span className="font-semibold text-red-600">{stats.overdue}</span> Overdue
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            {stats.upcoming > 0 && (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                                                                    <span className="text-gray-600">
-                                                                        <span className="font-semibold text-yellow-600">{stats.upcoming}</span> Upcoming
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            <div className="flex items-center gap-1.5">
-                                                                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                                                                <span className="text-gray-600">
-                                                                    <span className="font-semibold text-gray-700">{stats.total - stats.completed}</span> Pending
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </div>
-                                            
-                                            {/* Progress Ring */}
-                                            <div className="flex-shrink-0">
-                                                <div className="relative w-16 h-16">
-                                                    <svg className="w-16 h-16 transform -rotate-90">
-                                                        <circle
-                                                            cx="32"
-                                                            cy="32"
-                                                            r="28"
-                                                            stroke="#e5e7eb"
-                                                            strokeWidth="6"
-                                                            fill="none"
-                                                        />
-                                                        <circle
-                                                            cx="32"
-                                                            cy="32"
-                                                            r="28"
-                                                            stroke="#3b82f6"
-                                                            strokeWidth="6"
-                                                            fill="none"
-                                                            strokeDasharray={`${2 * Math.PI * 28}`}
-                                                            strokeDashoffset={`${2 * Math.PI * 28 * (1 - getVaccinationProgress(selectedChild) / 100)}`}
-                                                            className="transition-all duration-500"
-                                                        />
-                                                    </svg>
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <span className="text-sm font-bold text-gray-700">
-                                                            {getVaccinationProgress(selectedChild)}%
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                                <p className="text-sm text-gray-500">Track your child's immunization progress</p>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Expandable Content */}
-                                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                                        isVaccinationExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-                                    }`}>
-                                        <div className="px-6 pb-6 border-t border-gray-200">
-                                            <div className="space-y-3 mt-6">
-                                                {selectedChild.vaccinationSchedule?.vaccinations?.map((vaccine, index) => {
-                                                    const isCompleted = vaccine.isCompleted;
-                                                    const estimatedDate = calculateVaccinationDate(selectedChild.dateOfBirth, vaccine.ageInMonths);
-                                                    const overdue = isOverdue(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
-                                                    const upcoming = isUpcoming(selectedChild.dateOfBirth, vaccine.ageInMonths, isCompleted);
-                                                    const isUpdating = updatingVaccination === index;
-
-                                                    return (
-                                                        <div
-                                                            key={index}
-                                                            className={`p-4 rounded-xl border-2 transition-all duration-300 ${isCompleted
-                                                                ? 'bg-green-50 border-green-200'
-                                                                : overdue
-                                                                    ? 'bg-red-50 border-red-200'
-                                                                    : upcoming
-                                                                        ? 'bg-yellow-50 border-yellow-200'
-                                                                        : 'bg-gray-50 border-gray-200'
-                                                                } ${isUpdating ? 'opacity-50 pointer-events-none' : ''}`}
-                                                        >
-                                                            <div className="flex items-start gap-4">
-                                                                <div
-                                                                    className="flex-shrink-0 pt-1 cursor-pointer"
-                                                                    onClick={(e) => handleVaccinationClick(vaccine, index, e)}
-                                                                >
-                                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isCompleted
-                                                                            ? 'bg-green-500 border-green-500'
-                                                                            : 'bg-white border-gray-300 hover:border-blue-500'
-                                                                        } ${isCompleted || isUpdating ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                                                                        {isCompleted && (
-                                                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                                            </svg>
-                                                                        )}
-                                                                        {isUpdating && (
-                                                                            <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex-1">
-                                                                    <div className="flex items-start justify-between gap-2">
-                                                                        <div>
-                                                                            <h4 className={`font-semibold ${isCompleted ? 'text-green-800 line-through' : 'text-gray-800'
-                                                                                }`}>
-                                                                                {vaccine.name}
-                                                                            </h4>
-                                                                            <p className="text-sm text-gray-600 mt-0.5">{vaccine.description}</p>
-                                                                            <div className="flex items-center gap-4 mt-2 text-xs">
-                                                                                <span className={`font-medium ${isCompleted ? 'text-green-600' : 'text-gray-600'
+                                    {/* Collapsible Content - Shows/hides based on isVaccinationExpanded */}
+                                    {isVaccinationExpanded && (
+                                        <div className="px-6 pb-6 border-t border-gray-100 animate-fadeIn">
+                                            <div className="pt-4">
+                                                {selectedChild?.vaccinationSchedule?.vaccinations?.length ? (
+                                                    <ul className="space-y-3">
+                                                        {selectedChild.vaccinationSchedule.vaccinations.map((v, idx) => {
+                                                            const dueDate = calculateVaccinationDate(selectedChild.dateOfBirth, v.ageInMonths);
+                                                            const isVaccineOverdue = isOverdue(selectedChild.dateOfBirth, v.ageInMonths, v.isCompleted);
+                                                            const isVaccineUpcoming = isUpcoming(selectedChild.dateOfBirth, v.ageInMonths, v.isCompleted);
+                                                            
+                                                            return (
+                                                                <li key={v._id || idx} className={`p-4 rounded-xl border-2 transition-all ${
+                                                                    v.isCompleted 
+                                                                        ? 'bg-green-50 border-green-200' 
+                                                                        : isVaccineOverdue 
+                                                                            ? 'bg-red-50 border-red-200'
+                                                                            : isVaccineUpcoming
+                                                                                ? 'bg-yellow-50 border-yellow-200'
+                                                                                : 'bg-white border-gray-200'
+                                                                }`}>
+                                                                    <div className="flex items-start justify-between gap-4">
+                                                                        <div className="flex items-start gap-3 flex-1">
+                                                                            {/* Checkbox */}
+                                                                            <div className="pt-1">
+                                                                                {v.isCompleted ? (
+                                                                                    <div className="w-5 h-5 rounded bg-green-500 flex items-center justify-center">
+                                                                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                                        </svg>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="w-5 h-5 rounded border-2 border-gray-300"></div>
+                                                                                )}
+                                                                            </div>
+                                                                            
+                                                                            {/* Vaccine Info */}
+                                                                            <div className="flex-1">
+                                                                                <div className="font-bold text-gray-900">{v.name}</div>
+                                                                                {v.description && (
+                                                                                    <div className="text-sm text-gray-600 mt-0.5">{v.description}</div>
+                                                                                )}
+                                                                                <div className="flex items-center gap-3 mt-2 text-sm">
+                                                                                    <span className={`font-medium ${
+                                                                                        v.isCompleted ? 'text-green-700' : 'text-gray-700'
                                                                                     }`}>
-                                                                                    Age: {vaccine.ageInMonths === 0 ? 'At birth' : `${vaccine.ageInMonths} months`}
-                                                                                </span>
-                                                                                <span className={`px-2 py-1 rounded-full ${isCompleted
-                                                                                    ? 'bg-green-200 text-green-800'
-                                                                                    : overdue
-                                                                                        ? 'bg-red-200 text-red-800'
-                                                                                        : upcoming
-                                                                                            ? 'bg-yellow-200 text-yellow-800'
-                                                                                            : 'bg-gray-200 text-gray-800'
-                                                                                    }`}>
-                                                                                    {isCompleted
-                                                                                        ? `✓ Completed ${vaccine.completedDate ? new Date(vaccine.completedDate).toLocaleDateString() : ''}`
-                                                                                        : overdue
-                                                                                            ? '⚠️ Overdue'
-                                                                                            : upcoming
-                                                                                                ? '📅 Upcoming'
-                                                                                                : `📅 ${estimatedDate}`
-                                                                                    }
-                                                                                </span>
+                                                                                        Age: At {v.ageInMonths === 0 ? 'birth' : `${v.ageInMonths} months`}
+                                                                                    </span>
+                                                                                    {v.isCompleted ? (
+                                                                                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                                                                                            ✓ Completed {v.completedDate ? new Date(v.completedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <span className="text-gray-500">
+                                                                                            📅 {dueDate}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                         </div>
+
+                                                                        {/* Action Button */}
+                                                                        {!v.isCompleted && (
+                                                                            <button 
+                                                                                onClick={(e) => handleVaccinationClick(v, idx, e)} 
+                                                                                disabled={updatingVaccination === idx} 
+                                                                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                                                            >
+                                                                                {updatingVaccination === idx ? 'Updating...' : 'Mark Done'}
+                                                                            </button>
+                                                                        )}
                                                                     </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                                </li>
+                                                            );
+                                                        })}
+                                                    </ul>
+                                                ) : (
+                                                    <div className="text-center py-8 text-gray-500">
+                                                        No vaccination schedule available for this child.
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -759,15 +689,15 @@ export default function UserProfile() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </div>
-                        
+
                         <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
                             Delete Child Profile?
                         </h3>
-                        
+
                         <p className="text-gray-600 text-center mb-2">
                             Are you sure you want to delete <span className="font-semibold text-gray-900">{childToDelete?.name}</span>'s profile?
                         </p>
-                        
+
                         <p className="text-sm text-red-600 text-center mb-6">
                             This will permanently delete all health records and vaccination history. This action cannot be undone.
                         </p>
